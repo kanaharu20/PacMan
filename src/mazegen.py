@@ -6,6 +6,7 @@ from mazegenerator import MazeGenerator
 
 # maze[y][x] の下位4bitが壁 (N=1, E=2, S=4, W=8)。ビットが立っていたら壁あり
 class Direction(Enum):
+    # 方向と壁のビットパターンを定義
     UP = (0, -1, 1)
     RIGHT = (1, 0, 2)
     DOWN = (0, 1, 4)
