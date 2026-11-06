@@ -19,20 +19,20 @@
 
 | pygame | MLX | 判定 | 使っている場所 | メモ |
 |---|---|---|---|---|
-| `pygame.init()` | `mlx_init()` | ✅ | `main.py` | |
-| `pygame.quit()` | `mlx_release()` | ✅ | `main.py` | |
-| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `main.py` | |
-| `pygame.display.set_caption(title)` | `mlx_new_window` の `title` 引数 | ✅ | `main.py` | |
-| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `main.py` | MLX は貼った時点で表示されるが、pygame は flip が必要 |
-| `pygame.event.get()` | `mlx_loop()` が呼ぶ各フック | ✅ | `main.py` | MLX はコールバック方式、pygame はイベントを取り出す方式 |
-| `pygame.KEYDOWN` イベント | `mlx_hook(win, 2, ...)`（KeyPress） | ✅ | `main.py` | `mlx_key_hook` は**キーを離したとき**なので、押した瞬間は `mlx_hook` を使う |
-| `pygame.QUIT` イベント | `mlx_hook(win, 33, ...)`（ウィンドウを閉じる） | ✅ | `main.py` | |
+| `pygame.init()` | `mlx_init()` | ✅ | `pac-man.py` | |
+| `pygame.quit()` | `mlx_release()` | ✅ | `pac-man.py` | |
+| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `pac-man.py` | |
+| `pygame.display.set_caption(title)` | `mlx_new_window` の `title` 引数 | ✅ | `pac-man.py` | |
+| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `pac-man.py` | MLX は貼った時点で表示されるが、pygame は flip が必要 |
+| `pygame.event.get()` | `mlx_loop()` が呼ぶ各フック | ✅ | `pac-man.py` | MLX はコールバック方式、pygame はイベントを取り出す方式 |
+| `pygame.KEYDOWN` イベント | `mlx_hook(win, 2, ...)`（KeyPress） | ✅ | `pac-man.py` | `mlx_key_hook` は**キーを離したとき**なので、押した瞬間は `mlx_hook` を使う |
+| `pygame.QUIT` イベント | `mlx_hook(win, 33, ...)`（ウィンドウを閉じる） | ✅ | `pac-man.py` | |
 | `pygame.Surface((w, h))` | `mlx_new_image(mlx, w, h)` | ✅ | `src/render.py` | |
 | 新しい Surface 全体への `fill(color)` | `mlx_get_data_addr()` で全ピクセルに書き込む | ✅ | `src/render.py`（`solid_image`） | 画像を作る段階で使う。単色の画像を作るだけ |
 | 画面全体への `screen.fill(黒)` | `mlx_clear_window()` | ✅ | `src/render.py` | |
 | `screen.blit(image, (x, y))` | `mlx_put_image_to_window(mlx, win, img, x, y)` | ✅ | `src/render.py` | 描画は基本これだけで行う |
-| ゲームループ（`while running:`） | `mlx_loop()` ＋ `mlx_loop_hook()` | ✅ | `main.py` | |
-| 時間の計測：`time.perf_counter()` / `time.sleep()` | （MLX にはタイマーがない） | ✅ | `main.py` | Python 標準ライブラリなのでグラフィックの制約の対象外。`pygame.time.Clock` は使わない |
+| ゲームループ（`while running:`） | `mlx_loop()` ＋ `mlx_loop_hook()` | ✅ | `pac-man.py` | |
+| 時間の計測：`time.perf_counter()` / `time.sleep()` | （MLX にはタイマーがない） | ✅ | `pac-man.py` | Python 標準ライブラリなのでグラフィックの制約の対象外。`pygame.time.Clock` は使わない |
 
 ## 2. MLX の関数と、対応する pygame の機能
 
