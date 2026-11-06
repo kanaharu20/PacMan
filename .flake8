@@ -1,0 +1,3 @@
+[flake8]
+# 課題どおり `flake8 .` で実行するので、仮想環境やキャッシュは対象から外す
+exclude = .git,.venv,__pycache__,.mypy_cache,.pytest_cache,build,dist
