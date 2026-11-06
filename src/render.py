@@ -1,6 +1,8 @@
 import pygame
 
+from src.ghost import Ghost
 from src.mazegen import Direction, Maze
+from src.mover import Mover
 from src.player import Player
 
 # MLX には線や四角を描く関数がないので pygame.draw は使わない。
@@ -14,6 +16,9 @@ WALL_COLOR = (40, 80, 255)
 BLOCKED_COLOR = (20, 30, 90)
 PLAYER_COLOR = (255, 220, 0)
 PLAYER_SIZE = int(CELL * 0.6)
+GHOST_COLORS = ((230, 60, 60), (60, 200, 90), (170, 90, 255),
+                (240, 240, 240))
+SPRITE_SIZE = PLAYER_SIZE  # プレイヤーとゴーストは同じ大きさ
 
 
 def solid_image(width: int, height: int,
@@ -35,12 +40,18 @@ class Renderer:
         self.h_wall = solid_image(CELL + WALL, WALL, WALL_COLOR)
         self.v_wall = solid_image(WALL, CELL + WALL, WALL_COLOR)
         self.blocked = solid_image(CELL, CELL, BLOCKED_COLOR)
-        self.player = solid_image(PLAYER_SIZE, PLAYER_SIZE, PLAYER_COLOR)
+        self.player = solid_image(SPRITE_SIZE, SPRITE_SIZE, PLAYER_COLOR)
+        self.ghosts = [solid_image(SPRITE_SIZE, SPRITE_SIZE, color)
+                       for color in GHOST_COLORS]
 
-    def draw(self, screen: pygame.Surface, player: Player) -> None:
+    def draw(self, screen: pygame.Surface, player: Player,
+             ghosts: list[Ghost]) -> None:
         screen.fill((0, 0, 0))  # mlx_clear_window
         self._draw_maze(screen)
-        self._draw_player(screen, player)
+        for i, ghost in enumerate(ghosts):
+            image = self.ghosts[i % len(self.ghosts)]
+            self._draw_mover(screen, image, ghost)
+        self._draw_mover(screen, self.player, player)
 
     def _draw_maze(self, screen: pygame.Surface) -> None:
         half = WALL // 2
@@ -61,9 +72,10 @@ class Renderer:
                     if self.maze.has_wall(x, y, direction):
                         screen.blit(image, (wx, wy))
 
-    def _draw_player(self, screen: pygame.Surface, player: Player) -> None:
-        px, py = player.position
+    def _draw_mover(self, screen: pygame.Surface, image: pygame.Surface,
+                    mover: Mover) -> None:
+        px, py = mover.position
         cx = MARGIN + (px + 0.5) * CELL
         cy = MARGIN + (py + 0.5) * CELL
-        screen.blit(self.player, (round(cx - PLAYER_SIZE / 2),
-                                  round(cy - PLAYER_SIZE / 2)))
+        screen.blit(image, (round(cx - SPRITE_SIZE / 2),
+                            round(cy - SPRITE_SIZE / 2)))

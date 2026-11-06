@@ -60,7 +60,15 @@ class Maze:
         return self.grid[y][x] == BLOCKED
 
     def center_cell(self) -> tuple[int, int]:
-        start = (self.width // 2, self.height // 2)
+        return self.nearest_open((self.width // 2, self.height // 2))
+
+    def corner_cells(self) -> list[tuple[int, int]]:
+        right, bottom = self.width - 1, self.height - 1
+        corners = [(0, 0), (right, 0), (0, bottom), (right, bottom)]
+        return [self.nearest_open(cell) for cell in corners]
+
+    # 壁は無視して、start から一番近い「42」でないセルを探す
+    def nearest_open(self, start: tuple[int, int]) -> tuple[int, int]:
         seen = {start}
         queue = deque([start])
         while queue:
@@ -73,3 +81,17 @@ class Maze:
                     seen.add(nxt)
                     queue.append(nxt)
         return start
+
+    # start から通路をたどったときの歩数。行けないセルは入らない
+    def distances_from(self,
+                       start: tuple[int, int]) -> dict[tuple[int, int], int]:
+        dist = {start: 0}
+        queue = deque([start])
+        while queue:
+            x, y = queue.popleft()
+            for d in Direction:
+                nxt = (x + d.dx, y + d.dy)
+                if self.can_move(x, y, d) and nxt not in dist:
+                    dist[nxt] = dist[(x, y)] + 1
+                    queue.append(nxt)
+        return dist
