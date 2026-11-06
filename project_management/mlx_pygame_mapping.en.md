@@ -19,20 +19,20 @@ Legend: ✅ has an MLX equivalent / ⚠️ open to interpretation, needs checkin
 
 | pygame | MLX | Status | Used in | Notes |
 |---|---|---|---|---|
-| `pygame.init()` | `mlx_init()` | ✅ | `main.py` | |
-| `pygame.quit()` | `mlx_release()` | ✅ | `main.py` | |
-| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `main.py` | |
-| `pygame.display.set_caption(title)` | `title` argument of `mlx_new_window` | ✅ | `main.py` | |
-| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `main.py` | MLX shows an image as soon as it is put; pygame needs flip |
-| `pygame.event.get()` | the hooks called by `mlx_loop()` | ✅ | `main.py` | MLX uses callbacks; pygame lets you pull events |
-| `pygame.KEYDOWN` event | `mlx_hook(win, 2, ...)` (KeyPress) | ✅ | `main.py` | `mlx_key_hook` fires on key **release**, so use `mlx_hook` for key press |
-| `pygame.QUIT` event | `mlx_hook(win, 33, ...)` (window closed) | ✅ | `main.py` | |
+| `pygame.init()` | `mlx_init()` | ✅ | `pac-man.py` | |
+| `pygame.quit()` | `mlx_release()` | ✅ | `pac-man.py` | |
+| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `pac-man.py` | |
+| `pygame.display.set_caption(title)` | `title` argument of `mlx_new_window` | ✅ | `pac-man.py` | |
+| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `pac-man.py` | MLX shows an image as soon as it is put; pygame needs flip |
+| `pygame.event.get()` | the hooks called by `mlx_loop()` | ✅ | `pac-man.py` | MLX uses callbacks; pygame lets you pull events |
+| `pygame.KEYDOWN` event | `mlx_hook(win, 2, ...)` (KeyPress) | ✅ | `pac-man.py` | `mlx_key_hook` fires on key **release**, so use `mlx_hook` for key press |
+| `pygame.QUIT` event | `mlx_hook(win, 33, ...)` (window closed) | ✅ | `pac-man.py` | |
 | `pygame.Surface((w, h))` | `mlx_new_image(mlx, w, h)` | ✅ | `src/render.py` | |
 | `fill(color)` on a whole new Surface | writing every pixel through `mlx_get_data_addr()` | ✅ | `src/render.py` (`solid_image`) | Only used when creating an image, to make a single-color image |
 | `screen.fill(black)` on the whole screen | `mlx_clear_window()` | ✅ | `src/render.py` | |
 | `screen.blit(image, (x, y))` | `mlx_put_image_to_window(mlx, win, img, x, y)` | ✅ | `src/render.py` | All drawing goes through this |
-| Game loop (`while running:`) | `mlx_loop()` + `mlx_loop_hook()` | ✅ | `main.py` | |
-| Timing: `time.perf_counter()` / `time.sleep()` | (MLX has no timer) | ✅ | `main.py` | Python standard library, so the graphics rule does not apply. We do not use `pygame.time.Clock` |
+| Game loop (`while running:`) | `mlx_loop()` + `mlx_loop_hook()` | ✅ | `pac-man.py` | |
+| Timing: `time.perf_counter()` / `time.sleep()` | (MLX has no timer) | ✅ | `pac-man.py` | Python standard library, so the graphics rule does not apply. We do not use `pygame.time.Clock` |
 
 ## 2. MLX functions and their pygame equivalents
 

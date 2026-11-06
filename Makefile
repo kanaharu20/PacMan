@@ -1,7 +1,7 @@
 # 課題 III.2 の Makefile
 # 依存関係の管理には uv を使う（https://docs.astral.sh/uv/）
 
-MAIN    := main.py
+MAIN    := pac-man.py
 UV      := uv
 PYTHON  := $(UV) run python
 
