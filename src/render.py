@@ -15,10 +15,10 @@ MARGIN = 4  # 外周の壁が画面端で切れないように
 WALL_COLOR = (40, 80, 255)
 BLOCKED_COLOR = (20, 30, 90)
 PLAYER_COLOR = (255, 220, 0)
-PLAYER_SIZE = int(CELL * 0.6)
 GHOST_COLORS = ((230, 60, 60), (60, 200, 90), (170, 90, 255),
                 (240, 240, 240))
-SPRITE_SIZE = PLAYER_SIZE  # プレイヤーとゴーストは同じ大きさ
+# 大きさはロジック側 (Mover.size) が決める。当たり判定と見た目を一致させるため
+SPRITE_SIZE = round(Mover.size * CELL)
 
 
 def solid_image(width: int, height: int,

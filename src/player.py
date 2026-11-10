@@ -8,6 +8,10 @@ class Player(Mover):
         super().__init__(maze, cell, speed)
         self.wanted: Direction | None = None  # buffered key input
 
+    def place(self, cell: tuple[int, int]) -> None:
+        super().place(cell)
+        self.wanted = None
+
     def steer(self, direction: Direction) -> None:
         self.wanted = direction
         if (self.direction is not None
