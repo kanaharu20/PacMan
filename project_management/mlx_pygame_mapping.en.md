@@ -31,6 +31,8 @@ Legend: ✅ has an MLX equivalent / ⚠️ open to interpretation, needs checkin
 | `fill(color)` on a whole new Surface | writing every pixel through `mlx_get_data_addr()` | ✅ | `src/render.py` (`solid_image`) | Only used when creating an image, to make a single-color image |
 | `screen.fill(black)` on the whole screen | `mlx_clear_window()` | ✅ | `src/render.py` | |
 | `screen.blit(image, (x, y))` | `mlx_put_image_to_window(mlx, win, img, x, y)` | ✅ | `src/render.py` | All drawing goes through this |
+| `pygame.font.Font(None, 24)` + `font.render(text, False, color)` + `blit` | `mlx_string_put(mlx, win, x, y, color, text)` | ✅ | `src/render.py` (`Renderer.put_string`) | HUD text. Follows the rules in section 4 |
+| `image.get_width()` / `get_height()` | the size passed to `mlx_new_image`, or the width and height returned by `mlx_xpm_file_to_image` | ✅ | `src/render.py` | Used to center an image on a point |
 | Game loop (`while running:`) | `mlx_loop()` + `mlx_loop_hook()` | ✅ | `pac-man.py` | |
 | Timing: `time.perf_counter()` / `time.sleep()` | (MLX has no timer) | ✅ | `pac-man.py` | Python standard library, so the graphics rule does not apply. We do not use `pygame.time.Clock` |
 
@@ -44,7 +46,7 @@ Legend: ✅ has an MLX equivalent / ⚠️ open to interpretation, needs checkin
 | `mlx_clear_window(mlx, win)` | Fill the window with black | `screen.fill((0, 0, 0))` | ✅ |
 | `mlx_destroy_window(mlx, win)` | Close a window | `pygame.display.quit()` | ✅ |
 | `mlx_pixel_put(mlx, win, x, y, color)` | Draw one pixel (slow) | `screen.set_at((x, y), color)` | ✅ |
-| `mlx_string_put(mlx, win, x, y, color, s)` | Draw text with the built-in font | `pygame.font.Font(None, size).render()` + `blit` | ⚠️ see section 4 |
+| `mlx_string_put(mlx, win, x, y, color, s)` | Draw text with the built-in font | `Renderer.put_string()` (`pygame.font.Font(None, 24).render()` + `blit`) | ✅ within the rules in section 4 |
 | `mlx_new_image(mlx, w, h)` | Create an empty image | `pygame.Surface((w, h))` | ✅ |
 | `mlx_get_data_addr(img)` | Write directly to an image's pixels | `Surface.fill()` (whole new image), `Surface.set_at()`, `pygame.PixelArray` | ✅ |
 | `mlx_put_image_to_window(mlx, win, img, x, y)` | Put an image on the window | `screen.blit(img, (x, y))` | ✅ |
@@ -81,7 +83,7 @@ Colors: MLX uses `0xAARRGGBB` integers; pygame uses `(R, G, B)` tuples.
 
 | Topic | Problem | Current plan |
 |---|---|---|
-| Text (`pygame.font`) | MLX's `mlx_string_put` only has a fixed built-in font. Using any font such as a `.ttf` file may go beyond MLX | Only use `pygame.font.Font(None, size)` (pygame's default font), or draw text from images |
+| Text (`pygame.font`) | MLX's `mlx_string_put` only has a fixed built-in font. Using any font such as a `.ttf` file may go beyond MLX | **Decided**: all text goes through `Renderer.put_string()`. (1) Only pygame's built-in font (`Font(None, ...)`), one size, (2) ASCII only (no Japanese), (3) no background color, (4) no measuring text width with `font.size()` to center it (positions are fixed coordinates), (5) no bold, italic, scaling or rotation. Use an image if a big title is needed |
 | Transparency (alpha) | MLX colors have an alpha byte, but the guide does not say whether `mlx_put_image_to_window` honors it | Check before using it. If possible, use images with a black background |
 | Cutting a sprite sheet (`Surface.subsurface`) | MLX cannot cut out part of an image (copying pixels with `mlx_get_data_addr` does the same thing) | Safest: one image file per frame |
 | `blit` from image to image (not to the screen) | MLX only puts images on the window. Copying pixels between images does the same thing | Not used now. Check if we need it |
