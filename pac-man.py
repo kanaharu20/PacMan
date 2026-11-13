@@ -1,15 +1,18 @@
+import logging
 import random
+import sys
 import time
 
 import pygame
 
+from src.config import Config, ConfigError, load_config
 from src.game import Game
 from src.mazegen import Direction, Maze
 from src.render import Renderer, window_size
 
-MAZE_SIZE = (21, 21)
 SEED = 42
 TICK = 1 / 60  # ゲームの更新間隔（秒）。描画の速さに関係なく一定
+USAGE = "usage: python3 pac-man.py <config.json>"
 
 KEYS = {
     pygame.K_UP: Direction.UP, pygame.K_w: Direction.UP,
@@ -20,7 +23,19 @@ KEYS = {
 
 
 def main() -> None:
-    maze = Maze(*MAZE_SIZE, seed=SEED)
+    # 設定の補正などのメッセージを「WARNING: ...」の形でターミナルに出す
+    logging.basicConfig(format="%(levelname)s: %(message)s")
+    if len(sys.argv) != 2:
+        sys.exit(USAGE)
+    try:
+        config = load_config(sys.argv[1])
+    except ConfigError as e:
+        sys.exit(f"Error: {e}")  # トレースバックは出さず、理由だけ出して終了
+    run(config)
+
+
+def run(config: Config) -> None:
+    maze = Maze(config.width, config.height, seed=SEED)
     # mazegenerator がグローバルの random を書き換えるので専用の乱数を使う
     game = Game(maze, random.Random(SEED))
 

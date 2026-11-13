@@ -2,6 +2,7 @@
 # 依存関係の管理には uv を使う（https://docs.astral.sh/uv/）
 
 MAIN    := pac-man.py
+CONFIG  := config.json
 UV      := uv
 PYTHON  := $(UV) run python
 
@@ -22,11 +23,11 @@ install:
 
 # ゲームを起動する
 run:
-	$(PYTHON) $(MAIN)
+	$(PYTHON) $(MAIN) $(CONFIG)
 
 # Python 組み込みのデバッガー pdb の上でゲームを起動する
 debug:
-	$(PYTHON) -m pdb $(MAIN)
+	$(PYTHON) -m pdb $(MAIN) $(CONFIG)
 
 # 一時ファイルとキャッシュを消す
 clean:

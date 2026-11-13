@@ -10,6 +10,9 @@ RESPAWN_DELAY = 2.0  # 当たってから全員が初期位置に戻って再開
 LEVEL_TIME = 90.0  # レベルの制限時間（秒）。0 になったら即ゲームオーバー
 POINTS_PER_PACGUM = 10
 POINTS_PER_SUPER_PACGUM = 50
+FRIGHT_TIME = 7.0  # スーパーパックガムを食べてからゴーストが逃げる時間（秒）
+POINTS_PER_GHOST = 200
+GHOST_RESPAWN_DELAY = 3.0  # 食べられたゴーストが自分の隅で復活するまで（秒）
 
 Cell = tuple[int, int]
 
@@ -68,9 +71,8 @@ class Game:
         for ghost in self.ghosts:
             ghost.target = round(px), round(py)
             ghost.update(dt)
-        # 全員が動き終わってから判定する。同じ tick に何体と当たっても 1 回だけ
-        if any(self.player.touches(ghost) for ghost in self.ghosts):
-            self._lose_life()
+        # 全員が動き終わってから判定する
+        self._check_ghost_collisions()
 
     # プレイヤーの中心が一番近いマスのガムを食べる（折り返し中でも正しく動く）
     def _eat(self) -> None:
@@ -82,8 +84,25 @@ class Game:
         elif cell in self.super_pacgums:
             self.super_pacgums.remove(cell)
             self.score += POINTS_PER_SUPER_PACGUM
+            for ghost in self.ghosts:
+                ghost.frighten(FRIGHT_TIME)
         if not self.pacgums and not self.super_pacgums:
             self.cleared = True
+
+    # いじけ中のゴーストは食べる。通常のゴーストに触れたらミス
+    # （同じ tick に何体と当たってもミスは 1 回だけ）。消えているゴーストは無視
+    def _check_ghost_collisions(self) -> None:
+        hit = False
+        for ghost in self.ghosts:
+            if ghost.eaten or not self.player.touches(ghost):
+                continue
+            if ghost.frightened:
+                ghost.get_eaten(GHOST_RESPAWN_DELAY)
+                self.score += POINTS_PER_GHOST
+            else:
+                hit = True
+        if hit:
+            self._lose_life()
 
     def _lose_life(self) -> None:
         self.lives -= 1
@@ -94,5 +113,5 @@ class Game:
 
     def _reset_positions(self) -> None:
         self.player.place(self.maze.center_cell())
-        for ghost, cell in zip(self.ghosts, self.maze.corner_cells()):
-            ghost.place(cell)
+        for ghost in self.ghosts:
+            ghost.place(ghost.home)
