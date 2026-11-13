@@ -20,6 +20,10 @@ BLOCKED_COLOR = (20, 30, 90)
 PLAYER_COLOR = (255, 220, 0)
 GHOST_COLORS = ((230, 60, 60), (60, 200, 90), (170, 90, 255),
                 (240, 240, 240))
+FRIGHTENED_COLOR = (40, 40, 220)  # いじけ中のゴースト
+FRIGHT_ENDING_COLOR = (230, 230, 255)  # いじけが終わりそうなときに点滅する色
+FRIGHT_BLINK_TIME = 2.0  # いじけの残りがこの秒数を切ったら点滅する
+FRIGHT_BLINKS_PER_SEC = 4
 PACGUM_COLOR = (255, 190, 160)
 PACGUM_SIZE = 4
 SUPER_PACGUM_SIZE = 12
@@ -32,6 +36,9 @@ SPRITE_SIZE = round(Mover.size * CELL)
 # 文字の幅を測って中央寄せなどはしない（位置は固定の座標で決める）
 FONT_SIZE = 24
 HUD_ITEMS_X = (MARGIN, 200, 330, 470)  # SCORE, LIVES, TIME, 状態の表示位置
+# HUD の文字が全部入る幅。迷路がこれより狭いときは、ウィンドウをこの幅にして
+# 迷路を左右の真ん中に置く（"GAME OVER" が約 95px なので 470 + 95 に余白を足す）
+HUD_MIN_WIDTH = 580
 
 
 def solid_image(width: int, height: int,
@@ -43,18 +50,19 @@ def solid_image(width: int, height: int,
 
 
 def window_size(maze: Maze) -> tuple[int, int]:
-    return (maze.width * CELL + 2 * MARGIN,
+    return (max(maze.width * CELL + 2 * MARGIN, HUD_MIN_WIDTH),
             maze.height * CELL + MAZE_TOP + MARGIN)
 
 
-# セル (x, y) の中心のピクセル座標
-def cell_center(x: float, y: float) -> tuple[float, float]:
-    return MARGIN + (x + 0.5) * CELL, MAZE_TOP + (y + 0.5) * CELL
+# 迷路の左端の x 座標。迷路がウィンドウより狭いときは真ん中に寄せる
+def maze_left(maze: Maze) -> int:
+    return (window_size(maze)[0] - maze.width * CELL) // 2
 
 
 class Renderer:
     def __init__(self, maze: Maze) -> None:
         self.maze = maze
+        self.left = maze_left(maze)
         self.h_wall = solid_image(CELL + WALL, WALL, WALL_COLOR)
         self.v_wall = solid_image(WALL, CELL + WALL, WALL_COLOR)
         self.blocked = solid_image(CELL, CELL, BLOCKED_COLOR)
@@ -64,6 +72,10 @@ class Renderer:
         self.player = solid_image(SPRITE_SIZE, SPRITE_SIZE, PLAYER_COLOR)
         self.ghosts = [solid_image(SPRITE_SIZE, SPRITE_SIZE, color)
                        for color in GHOST_COLORS]
+        self.frightened = solid_image(SPRITE_SIZE, SPRITE_SIZE,
+                                      FRIGHTENED_COLOR)
+        self.fright_ending = solid_image(SPRITE_SIZE, SPRITE_SIZE,
+                                         FRIGHT_ENDING_COLOR)
         self.font = pygame.font.Font(None, FONT_SIZE)  # 内蔵フォント
 
     def draw(self, screen: pygame.Surface, game: Game) -> None:
@@ -74,10 +86,21 @@ class Renderer:
         for x, y in game.super_pacgums:
             self._draw_centered(screen, self.super_pacgum, x, y)
         for i, ghost in enumerate(game.ghosts):
+            if ghost.eaten:  # 食べられて復活待ちの間は描かない
+                continue
             image = self.ghosts[i % len(self.ghosts)]
+            if ghost.frightened:
+                image = self._frightened_image(ghost.fright)
             self._draw_mover(screen, image, ghost)
         self._draw_mover(screen, self.player, game.player)
         self._draw_hud(screen, game)
+
+    # いじけ中は青。終わる直前は青と白を交互に出して、もうすぐ戻ると知らせる
+    def _frightened_image(self, time_left: float) -> pygame.Surface:
+        if (time_left < FRIGHT_BLINK_TIME
+                and int(time_left * FRIGHT_BLINKS_PER_SEC * 2) % 2 == 0):
+            return self.fright_ending
+        return self.frightened
 
     # mlx_string_put(mlx, win, x, y, color, text) の代わり
     def put_string(self, screen: pygame.Surface, x: int, y: int,
@@ -100,7 +123,7 @@ class Renderer:
         half = WALL // 2
         for y in range(self.maze.height):
             for x in range(self.maze.width):
-                left, top = MARGIN + x * CELL, MAZE_TOP + y * CELL
+                left, top = self.left + x * CELL, MAZE_TOP + y * CELL
                 if self.maze.is_blocked(x, y):
                     screen.blit(self.blocked, (left, top))
                 walls = {
@@ -118,9 +141,14 @@ class Renderer:
     # image を (x, y) の中心に合わせて貼る。x, y は小数でもよい
     def _draw_centered(self, screen: pygame.Surface, image: pygame.Surface,
                        x: float, y: float) -> None:
-        cx, cy = cell_center(x, y)
+        cx, cy = self._cell_center(x, y)
         screen.blit(image, (round(cx - image.get_width() / 2),
                             round(cy - image.get_height() / 2)))
+
+    # セル (x, y) の中心のピクセル座標
+    def _cell_center(self, x: float, y: float) -> tuple[float, float]:
+        return (self.left + (x + 0.5) * CELL,
+                MAZE_TOP + (y + 0.5) * CELL)
 
     def _draw_mover(self, screen: pygame.Surface, image: pygame.Surface,
                     mover: Mover) -> None:
