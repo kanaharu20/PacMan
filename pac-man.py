@@ -47,7 +47,7 @@ def main() -> None:
         while lag >= TICK:
             game.update(TICK)
             lag -= TICK
-        renderer.draw(screen, game.player, game.ghosts)
+        renderer.draw(screen, game)
         pygame.display.flip()  # mlx_do_sync
         time.sleep(max(0.0, TICK - (time.perf_counter() - now)))
     pygame.quit()  # mlx_release
