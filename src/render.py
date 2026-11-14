@@ -2,9 +2,9 @@ import math
 
 import pygame
 
-from src.game import Game
 from src.mazegen import Direction, Maze
 from src.mover import Mover
+from src.session import Session
 
 # MLX には線や四角を描く関数がないので pygame.draw は使わない。
 # 単色の画像（Surface）を最初に作っておき、毎フレームそれを貼る（blit）だけにする。
@@ -13,7 +13,7 @@ from src.mover import Mover
 CELL = 32
 WALL = 2  # 壁の太さ
 MARGIN = 4  # 外周の壁が画面端で切れないように
-HUD_HEIGHT = 28  # 画面上部の HUD（得点・残機・残り時間）の帯
+HUD_HEIGHT = 28  # 画面上部の HUD（得点・レベル・残機・残り時間）の帯
 MAZE_TOP = HUD_HEIGHT + MARGIN
 WALL_COLOR = (40, 80, 255)
 BLOCKED_COLOR = (20, 30, 90)
@@ -35,9 +35,11 @@ SPRITE_SIZE = round(Mover.size * CELL)
 # フォントは pygame の内蔵フォント 1 種類・1 サイズ、ASCII だけ、背景色なし、
 # 文字の幅を測って中央寄せなどはしない（位置は固定の座標で決める）
 FONT_SIZE = 24
-HUD_ITEMS_X = (MARGIN, 200, 330, 470)  # SCORE, LIVES, TIME, 状態の表示位置
+# SCORE, LEVEL, LIVES, TIME, 状態の表示位置。一番長くなる文字の幅（"SCORE 999999"
+# 120px、"LEVEL 50/50" 95px、"LIVES 9" 59px、"TIME 999" 72px）に余白を足して決めた
+HUD_ITEMS_X = (MARGIN, 140, 255, 335, 430)
 # HUD の文字が全部入る幅。迷路がこれより狭いときは、ウィンドウをこの幅にして
-# 迷路を左右の真ん中に置く（"GAME OVER" が約 95px なので 470 + 95 に余白を足す）
+# 迷路を左右の真ん中に置く（"GAME OVER" が約 98px なので 430 + 98 に余白を足す）
 HUD_MIN_WIDTH = 580
 
 
@@ -78,7 +80,8 @@ class Renderer:
                                          FRIGHT_ENDING_COLOR)
         self.font = pygame.font.Font(None, FONT_SIZE)  # 内蔵フォント
 
-    def draw(self, screen: pygame.Surface, game: Game) -> None:
+    def draw(self, screen: pygame.Surface, session: Session) -> None:
+        game = session.game
         screen.fill((0, 0, 0))  # mlx_clear_window
         self._draw_maze(screen)
         for x, y in game.pacgums:
@@ -93,7 +96,7 @@ class Renderer:
                 image = self._frightened_image(ghost.fright)
             self._draw_mover(screen, image, ghost)
         self._draw_mover(screen, self.player, game.player)
-        self._draw_hud(screen, game)
+        self._draw_hud(screen, session)
 
     # いじけ中は青。終わる直前は青と白を交互に出して、もうすぐ戻ると知らせる
     def _frightened_image(self, time_left: float) -> pygame.Surface:
@@ -107,13 +110,18 @@ class Renderer:
                    color: tuple[int, int, int], text: str) -> None:
         screen.blit(self.font.render(text, False, color), (x, y))
 
-    def _draw_hud(self, screen: pygame.Surface, game: Game) -> None:
+    def _draw_hud(self, screen: pygame.Surface, session: Session) -> None:
+        game = session.game
         status = ""
-        if game.cleared:
+        if session.won:
+            status = "YOU WIN!"
+        elif game.cleared:
             status = "CLEAR!"
         elif game.game_over:
             status = "TIME UP" if game.time_left == 0.0 else "GAME OVER"
-        texts = (f"SCORE {game.score}", f"LIVES {game.lives}",
+        texts = (f"SCORE {game.score}",
+                 f"LEVEL {session.level}/{session.level_count}",
+                 f"LIVES {game.lives}",
                  # round で小数の誤差（89.0000001 → 90 表示）を防ぐ
                  f"TIME {math.ceil(round(game.time_left, 6))}", status)
         for x, text in zip(HUD_ITEMS_X, texts):

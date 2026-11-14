@@ -37,11 +37,26 @@ class Direction(Enum):
 BLOCKED = 15  # all four walls: the isolated "42" cells
 
 
+# 迷路生成パッケージが失敗した・おかしな迷路を返した（続行できない）エラー
+class MazeError(Exception):
+    pass
+
+
 class Maze:
     def __init__(self, width: int, height: int, seed: int = 0) -> None:
-        generator = MazeGenerator(size=(width, height), perfect=False,
-                                  seed=seed)
-        self.grid: list[list[int]] = [row[:] for row in generator.maze]
+        # 他のグループのパッケージなので、何が起きても MazeError にまとめる
+        try:
+            generator = MazeGenerator(size=(width, height), perfect=False,
+                                      seed=seed)
+            grid = [list(row) for row in generator.maze]
+        except Exception as e:
+            raise MazeError(f"maze generator failed for a {width}x{height} "
+                            f"maze: {e}") from e
+        if (len(grid) != height or any(len(row) != width for row in grid)
+                or not all(isinstance(v, int) for row in grid for v in row)):
+            raise MazeError(f"maze generator returned a broken maze for "
+                            f"{width}x{height}")
+        self.grid: list[list[int]] = grid
         self.width = width
         self.height = height
 
