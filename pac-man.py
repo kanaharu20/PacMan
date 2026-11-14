@@ -1,16 +1,19 @@
 import logging
-import random
+import os
 import sys
 import time
 
-import pygame
+# pygame の起動メッセージ（"pygame-ce 2.5.8 (SDL ...)"）をターミナルに出さない。
+# pygame を import する前に設定しないと効かないので、ここだけ import の途中に書く
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
-from src.config import Config, ConfigError, load_config
-from src.game import Game
-from src.mazegen import Direction, Maze
-from src.render import Renderer, window_size
+import pygame  # noqa: E402
 
-SEED = 42
+from src.config import Config, ConfigError, load_config  # noqa: E402
+from src.mazegen import Direction, MazeError  # noqa: E402
+from src.render import Renderer, window_size  # noqa: E402
+from src.session import Session  # noqa: E402
+
 TICK = 1 / 60  # ゲームの更新間隔（秒）。描画の速さに関係なく一定
 USAGE = "usage: python3 pac-man.py <config.json>"
 
@@ -31,18 +34,32 @@ def main() -> None:
         config = load_config(sys.argv[1])
     except ConfigError as e:
         sys.exit(f"Error: {e}")  # トレースバックは出さず、理由だけ出して終了
-    run(config)
+    # どこで何が起きてもトレースバックを出さない（最後の砦）
+    try:
+        run(config)
+    except KeyboardInterrupt:  # Ctrl+C
+        sys.exit(0)
+    except MazeError as e:
+        sys.exit(f"Error: {e}")
+    except Exception as e:
+        sys.exit(f"Error: unexpected {type(e).__name__}: {e}")
 
 
 def run(config: Config) -> None:
-    maze = Maze(config.width, config.height, seed=SEED)
-    # mazegenerator がグローバルの random を書き換えるので専用の乱数を使う
-    game = Game(maze, random.Random(SEED))
-
+    session = Session(config)
     pygame.init()  # mlx_init
-    screen = pygame.display.set_mode(window_size(maze))  # mlx_new_window
+    try:
+        play(session)
+    finally:
+        pygame.quit()  # mlx_release（エラーで抜けたときも必ず呼ぶ）
+
+
+def play(session: Session) -> None:
+    # レベルごとに迷路の大きさが変わるので、変わったらウィンドウを作り直す
+    game = session.game
+    screen = pygame.display.set_mode(window_size(game.maze))  # mlx_new_window
     pygame.display.set_caption("Pac-Man (prototype)")
-    renderer = Renderer(maze)
+    renderer = Renderer(game.maze)
     # MLX にタイマーはないので、時間は Python 標準の time で測る
     last = time.perf_counter()
     lag = 0.0
@@ -55,17 +72,20 @@ def run(config: Config) -> None:
                 if event.key == pygame.K_ESCAPE:
                     running = False
                 elif event.key in KEYS:
-                    game.steer(KEYS[event.key])
+                    session.steer(KEYS[event.key])
         now = time.perf_counter()
         lag += min(now - last, 0.25)  # 止まっていた後に一気に進まないように
         last = now
         while lag >= TICK:
-            game.update(TICK)
+            session.update(TICK)
             lag -= TICK
-        renderer.draw(screen, game)
+        if session.game is not game:  # 次のレベルに進んだ
+            game = session.game
+            screen = pygame.display.set_mode(window_size(game.maze))
+            renderer = Renderer(game.maze)
+        renderer.draw(screen, session)
         pygame.display.flip()  # mlx_do_sync
         time.sleep(max(0.0, TICK - (time.perf_counter() - now)))
-    pygame.quit()  # mlx_release
 
 
 if __name__ == "__main__":

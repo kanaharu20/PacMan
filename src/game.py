@@ -1,4 +1,5 @@
 import random
+from dataclasses import dataclass
 
 from src.ghost import Ghost
 from src.mazegen import Direction, Maze
@@ -17,17 +18,30 @@ GHOST_RESPAWN_DELAY = 3.0  # 食べられたゴーストが自分の隅で復活
 Cell = tuple[int, int]
 
 
+# 1 レベルの規則。設定ファイルの値で変えられる（既定値は上の定数）
+@dataclass(frozen=True)
+class Rules:
+    level_time: float = LEVEL_TIME
+    points_per_pacgum: int = POINTS_PER_PACGUM
+    points_per_super_pacgum: int = POINTS_PER_SUPER_PACGUM
+    points_per_ghost: int = POINTS_PER_GHOST
+
+
 # 1 レベル分のゲームの状態。描画や入力 (pygame) には依存しない
 class Game:
-    def __init__(self, maze: Maze, rng: random.Random) -> None:
+    # score と lives は前のレベルから引き継ぐ値
+    def __init__(self, maze: Maze, rng: random.Random,
+                 rules: Rules = Rules(), score: int = 0,
+                 lives: int = LIVES) -> None:
         self.maze = maze
+        self.rules = rules
         self.player = Player(maze, maze.center_cell())
         self.ghosts = [Ghost(maze, cell, speed, rng)
                        for cell, speed in zip(maze.corner_cells(),
                                               GHOST_SPEEDS)]
-        self.lives = LIVES
-        self.score = 0
-        self.time_left = LEVEL_TIME
+        self.lives = lives
+        self.score = score
+        self.time_left = rules.level_time
         self.freeze = 0.0  # 残りの停止時間。0 より大きい間は誰も動かない
         self.game_over = False
         self.cleared = False
@@ -80,10 +94,10 @@ class Game:
         cell = (round(px), round(py))
         if cell in self.pacgums:
             self.pacgums.remove(cell)
-            self.score += POINTS_PER_PACGUM
+            self.score += self.rules.points_per_pacgum
         elif cell in self.super_pacgums:
             self.super_pacgums.remove(cell)
-            self.score += POINTS_PER_SUPER_PACGUM
+            self.score += self.rules.points_per_super_pacgum
             for ghost in self.ghosts:
                 ghost.frighten(FRIGHT_TIME)
         if not self.pacgums and not self.super_pacgums:
@@ -98,7 +112,7 @@ class Game:
                 continue
             if ghost.frightened:
                 ghost.get_eaten(GHOST_RESPAWN_DELAY)
-                self.score += POINTS_PER_GHOST
+                self.score += self.rules.points_per_ghost
             else:
                 hit = True
         if hit:

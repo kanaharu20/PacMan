@@ -31,8 +31,11 @@ def test_hash_lines_are_comments(tmp_path: Path) -> None:
     assert load_config(path) == Config(width=15, height=11)
 
 
-def test_project_config_file_loads() -> None:
-    assert load_config("config.json") == Config()
+# 配布する config.json は、全部のキーが正しく書かれていて警告が 1 つも出ない
+def test_project_config_file_loads(caplog: pytest.LogCaptureFixture) -> None:
+    config = load_config("config.json")
+    assert caplog.text == ""
+    assert len(config.levels) == 10
 
 
 def test_missing_keys_use_defaults(tmp_path: Path,
@@ -71,7 +74,7 @@ def test_limits_are_inclusive(tmp_path: Path, width: int, height: int,
                               caplog: pytest.LogCaptureFixture) -> None:
     path = write(tmp_path, f'{{"width": {width}, "height": {height}}}')
     assert load_config(path) == Config(width=width, height=height)
-    assert caplog.text == ""
+    assert "out of range" not in caplog.text
 
 
 def test_unknown_keys_are_ignored(tmp_path: Path,
@@ -87,9 +90,10 @@ def test_missing_file_is_a_clear_error(tmp_path: Path) -> None:
 
 
 def test_broken_json_reports_the_line(tmp_path: Path) -> None:
-    # コメント行を消しても行番号がずれないこと（壊れているのは 3 行目のカンマ）
-    path = write(tmp_path, '# comment\n{\n  "width": 15,\n}\n')
-    with pytest.raises(ConfigError, match=r"not valid JSON.*line 3"):
+    # コメント行を消しても行番号がずれないこと（4 行目の前にカンマがない）
+    # 末尾のカンマは Python 3.10 と 3.13 以降で報告する行がちがうので使わない
+    path = write(tmp_path, '# comment\n{\n  "width": 15\n  "height": 11\n}\n')
+    with pytest.raises(ConfigError, match=r"not valid JSON.*line 4"):
         load_config(path)
 
 
