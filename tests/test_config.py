@@ -5,7 +5,7 @@ import pytest
 from src.config import (MAZE_HEIGHT_MAX, MAZE_HEIGHT_MIN, MAZE_WIDTH_MAX,
                         MAZE_WIDTH_MIN, Config, ConfigError, load_config)
 from src.mazegen import Maze
-from src.render import window_size
+from src.render import WINDOW_SIZE, play_area_origin, play_area_size
 
 
 def write(tmp_path: Path, text: str) -> str:
@@ -117,9 +117,22 @@ def test_smallest_maze_has_42() -> None:
                for y in range(maze.height) for x in range(maze.width))
 
 
-# 上限の根拠: 一番大きい迷路のウィンドウが 1440x900 の画面に収まる
+# 上限の根拠: ウィンドウ（一番大きい迷路が入る大きさ）が 1440x900 の画面に収まる
 # （縦はメニューバーとタイトルバーの分、約 53px を引いておく）
-def test_largest_window_fits_a_small_screen() -> None:
-    width, height = window_size(Maze(MAZE_WIDTH_MAX, MAZE_HEIGHT_MAX))
+def test_window_fits_a_small_screen() -> None:
+    width, height = WINDOW_SIZE
     assert width <= 1440
     assert height <= 900 - 53
+
+
+# どの大きさの迷路でも、プレイ領域がウィンドウからはみ出さない
+@pytest.mark.parametrize("width, height", [
+    (MAZE_WIDTH_MIN, MAZE_HEIGHT_MIN), (MAZE_WIDTH_MAX, MAZE_HEIGHT_MAX),
+    (MAZE_WIDTH_MIN, MAZE_HEIGHT_MAX), (MAZE_WIDTH_MAX, MAZE_HEIGHT_MIN)])
+def test_play_area_fits_in_window(width: int, height: int) -> None:
+    maze = Maze(width, height, seed=42)
+    x, y = play_area_origin(maze)
+    area_width, area_height = play_area_size(width, height)
+    assert x >= 0 and y >= 0
+    assert x + area_width <= WINDOW_SIZE[0]
+    assert y + area_height <= WINDOW_SIZE[1]
