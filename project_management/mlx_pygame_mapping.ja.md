@@ -19,22 +19,22 @@
 
 | pygame | MLX | 判定 | 使っている場所 | メモ |
 |---|---|---|---|---|
-| `pygame.init()` | `mlx_init()` | ✅ | `pac-man.py` | |
-| `pygame.quit()` | `mlx_release()` | ✅ | `pac-man.py` | |
-| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `pac-man.py` | |
-| `pygame.display.set_caption(title)` | `mlx_new_window` の `title` 引数 | ✅ | `pac-man.py` | |
-| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `pac-man.py` | MLX は貼った時点で表示されるが、pygame は flip が必要 |
-| `pygame.event.get()` | `mlx_loop()` が呼ぶ各フック | ✅ | `pac-man.py` | MLX はコールバック方式、pygame はイベントを取り出す方式 |
-| `pygame.KEYDOWN` イベント | `mlx_hook(win, 2, ...)`（KeyPress） | ✅ | `pac-man.py` | `mlx_key_hook` は**キーを離したとき**なので、押した瞬間は `mlx_hook` を使う |
-| `pygame.QUIT` イベント | `mlx_hook(win, 33, ...)`（ウィンドウを閉じる） | ✅ | `pac-man.py` | |
+| `pygame.init()` | `mlx_init()` | ✅ | `src/app.py` | |
+| `pygame.quit()` | `mlx_release()` | ✅ | `src/app.py` | |
+| `pygame.display.set_mode((w, h))` | `mlx_new_window(mlx, w, h, title)` | ✅ | `src/app.py` | |
+| `pygame.display.set_caption(title)` | `mlx_new_window` の `title` 引数 | ✅ | `src/app.py` | |
+| `pygame.display.flip()` | `mlx_do_sync()` | ✅ | `src/app.py` | MLX は貼った時点で表示されるが、pygame は flip が必要 |
+| `pygame.event.get()` | `mlx_loop()` が呼ぶ各フック | ✅ | `src/app.py` | MLX はコールバック方式、pygame はイベントを取り出す方式 |
+| `pygame.KEYDOWN` イベント | `mlx_hook(win, 2, ...)`（KeyPress） | ✅ | `src/app.py` | `mlx_key_hook` は**キーを離したとき**なので、押した瞬間は `mlx_hook` を使う |
+| `pygame.QUIT` イベント | `mlx_hook(win, 33, ...)`（ウィンドウを閉じる） | ✅ | `src/app.py` | |
 | `pygame.Surface((w, h))` | `mlx_new_image(mlx, w, h)` | ✅ | `src/render.py` | |
-| 新しい Surface 全体への `fill(color)` | `mlx_get_data_addr()` で全ピクセルに書き込む | ✅ | `src/render.py`（`solid_image`） | 画像を作る段階で使う。単色の画像を作るだけ |
-| 画面全体への `screen.fill(黒)` | `mlx_clear_window()` | ✅ | `src/render.py` | |
-| `screen.blit(image, (x, y))` | `mlx_put_image_to_window(mlx, win, img, x, y)` | ✅ | `src/render.py` | 描画は基本これだけで行う |
-| `pygame.font.Font(None, 24)` ＋ `font.render(text, False, color)` ＋ `blit` | `mlx_string_put(mlx, win, x, y, color, text)` | ✅ | `src/render.py`（`Renderer.put_string`） | HUD の文字。使い方は 4 章の決まりに従う |
+| 新しい Surface 全体への `fill(color)` | `mlx_get_data_addr()` で全ピクセルに書き込む | ✅ | `src/render.py`, `src/screens.py`（`solid_image`） | 画像を作る段階で使う。単色の画像を作るだけ |
+| 画面全体への `screen.fill(黒)` | `mlx_clear_window()` | ✅ | `src/render.py`, `src/screens.py` | |
+| `screen.blit(image, (x, y))` | `mlx_put_image_to_window(mlx, win, img, x, y)` | ✅ | `src/render.py`, `src/screens.py` | 描画は基本これだけで行う |
+| `pygame.font.Font(None, 24)` ＋ `font.render(text, False, color)` ＋ `blit` | `mlx_string_put(mlx, win, x, y, color, text)` | ✅ | `src/render.py`（`TextWriter.put_string`） | HUD・メニューなど全部の文字。フォントは `App` で 1 回だけ作って全画面で共有する。使い方は 4 章の決まりに従う |
 | `image.get_width()` / `get_height()` | `mlx_new_image` に渡した大きさ、`mlx_xpm_file_to_image` が返す幅と高さ | ✅ | `src/render.py` | 画像を中心に合わせて貼るために使う |
-| ゲームループ（`while running:`） | `mlx_loop()` ＋ `mlx_loop_hook()` | ✅ | `pac-man.py` | |
-| 時間の計測：`time.perf_counter()` / `time.sleep()` | （MLX にはタイマーがない） | ✅ | `pac-man.py` | Python 標準ライブラリなのでグラフィックの制約の対象外。`pygame.time.Clock` は使わない |
+| ゲームループ（`while running:`） | `mlx_loop()` ＋ `mlx_loop_hook()` | ✅ | `src/app.py` | |
+| 時間の計測：`time.perf_counter()` / `time.sleep()` | （MLX にはタイマーがない） | ✅ | `src/app.py` | Python 標準ライブラリなのでグラフィックの制約の対象外。`pygame.time.Clock` は使わない |
 
 ## 2. MLX の関数と、対応する pygame の機能
 
@@ -46,7 +46,7 @@
 | `mlx_clear_window(mlx, win)` | ウィンドウを黒で塗る | `screen.fill((0, 0, 0))` | ✅ |
 | `mlx_destroy_window(mlx, win)` | ウィンドウを閉じる | `pygame.display.quit()` | ✅ |
 | `mlx_pixel_put(mlx, win, x, y, color)` | 1 ピクセル描く（遅い） | `screen.set_at((x, y), color)` | ✅ |
-| `mlx_string_put(mlx, win, x, y, color, s)` | 内蔵フォントで文字を描く | `Renderer.put_string()`（`pygame.font.Font(None, 24).render()` ＋ `blit`） | ✅ 4 章の決まりの範囲で |
+| `mlx_string_put(mlx, win, x, y, color, s)` | 内蔵フォントで文字を描く | `TextWriter.put_string()`（`pygame.font.Font(None, 24).render()` ＋ `blit`） | ✅ 4 章の決まりの範囲で |
 | `mlx_new_image(mlx, w, h)` | 空の画像を作る | `pygame.Surface((w, h))` | ✅ |
 | `mlx_get_data_addr(img)` | 画像のピクセルデータに直接書き込む | `Surface.fill()`（新しい画像全体）、`Surface.set_at()`、`pygame.PixelArray` | ✅ |
 | `mlx_put_image_to_window(mlx, win, img, x, y)` | 画像をウィンドウに貼る | `screen.blit(img, (x, y))` | ✅ |
@@ -83,7 +83,7 @@
 
 | 項目 | 問題 | 今の方針 |
 |---|---|---|
-| 文字の表示（`pygame.font`） | MLX の `mlx_string_put` は内蔵の固定フォントだけ。`.ttf` などの好きなフォントを使うのは MLX を超えているかもしれない | **決定**：文字は必ず `Renderer.put_string()` を通す。(1) フォントは pygame の内蔵フォント（`Font(None, ...)`）1 種類・1 サイズだけ、(2) ASCII 文字だけ（日本語は出さない）、(3) 背景色は付けない、(4) `font.size()` などで文字の幅を測って中央寄せしない（位置は固定の座標）、(5) 太字・斜体・拡大縮小・回転をしない。大きな見出しが必要なら画像で用意する |
+| 文字の表示（`pygame.font`） | MLX の `mlx_string_put` は内蔵の固定フォントだけ。`.ttf` などの好きなフォントを使うのは MLX を超えているかもしれない | **決定**：文字は必ず `TextWriter.put_string()` を通す。(1) フォントは pygame の内蔵フォント（`Font(None, ...)`）1 種類・1 サイズだけ、(2) ASCII 文字だけ（日本語は出さない）、(3) 背景色は付けない、(4) `font.size()` などで文字の幅を測って中央寄せしない（位置は固定の座標）、(5) 太字・斜体・拡大縮小・回転をしない。大きな見出しが必要なら画像で用意する |
 | 画像の透明部分（アルファ） | MLX の色にはアルファがあるが、`mlx_put_image_to_window` で透明が効くかは資料からは不明 | 使う前に確認する。使わなくて済むなら黒背景の画像にする |
 | スプライトシートの切り出し（`Surface.subsurface`） | MLX には画像の一部を切り出す関数がない（`mlx_get_data_addr` でピクセルを写せば同じことはできる） | 1 コマずつ別の画像ファイルにしておくのが一番安全 |
 | 画像同士の `blit`（画面ではなく画像に画像を貼る） | MLX は「画像をウィンドウに貼る」だけ。画像同士はピクセルを写せば同じことはできる | 今は使っていない。必要になったら確認する |
