@@ -1,10 +1,12 @@
 from src.mazegen import Direction, Maze
 from src.mover import Mover
 
+PLAYER_SPEED = 6.0  # 1 秒に進むマス数
+
 
 class Player(Mover):
     def __init__(self, maze: Maze, cell: tuple[int, int],
-                 speed: float = 6.0) -> None:
+                 speed: float = PLAYER_SPEED) -> None:
         super().__init__(maze, cell, speed)
         self.wanted: Direction | None = None  # buffered key input
 

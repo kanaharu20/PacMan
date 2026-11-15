@@ -49,7 +49,9 @@ class Ghost(Mover):
         self._calm_down()
         self.respawn = delay
 
-    def update(self, dt: float) -> None:
+    # frozen（チートのゴースト停止）のときは動かないが、タイマーは進める。
+    # 止まっている間も、逃げる状態は終わり、食べられたゴーストは隅で復活する
+    def update(self, dt: float, frozen: bool = False) -> None:
         if self.eaten:
             self.respawn -= dt
             if self.respawn <= 0.0:
@@ -59,7 +61,8 @@ class Ghost(Mover):
             self.fright -= dt
             if self.fright <= 0.0:
                 self._calm_down()
-        super().update(dt)
+        if not frozen:
+            super().update(dt)
 
     def _calm_down(self) -> None:
         self.fright = 0.0
