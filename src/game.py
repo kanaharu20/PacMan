@@ -1,9 +1,10 @@
 import random
 from dataclasses import dataclass
 
+from src.cheats import FAST_SPEED_RATE, Cheats
 from src.ghost import Ghost
 from src.mazegen import Direction, Maze
-from src.player import Player
+from src.player import PLAYER_SPEED, Player
 
 LIVES = 3
 GHOST_SPEEDS = (5.4, 5.1, 4.8, 4.5)  # プレイヤー (6.0) より少しずつ遅く
@@ -29,12 +30,14 @@ class Rules:
 
 # 1 レベル分のゲームの状態。描画や入力 (pygame) には依存しない
 class Game:
-    # score と lives は前のレベルから引き継ぐ値
+    # score と lives は前のレベルから引き継ぐ値。cheats は Session と共有する
+    # （Cheats は書き換わるので、既定値を引数に書かず、ここで作る）
     def __init__(self, maze: Maze, rng: random.Random,
                  rules: Rules = Rules(), score: int = 0,
-                 lives: int = LIVES) -> None:
+                 lives: int = LIVES, cheats: Cheats | None = None) -> None:
         self.maze = maze
         self.rules = rules
+        self.cheats = cheats if cheats is not None else Cheats()
         self.player = Player(maze, maze.center_cell())
         self.ghosts = [Ghost(maze, cell, speed, rng)
                        for cell, speed in zip(maze.corner_cells(),
@@ -72,6 +75,9 @@ class Game:
                 self.freeze = 0.0
                 self._reset_positions()
             return
+        # 速度アップはいつでも入切できるので、毎回ここで速さを決める
+        rate = FAST_SPEED_RATE if self.cheats.fast else 1.0
+        self.player.speed = PLAYER_SPEED * rate
         self.player.update(dt)
         self._eat()
         if self.cleared:
@@ -84,7 +90,7 @@ class Game:
         px, py = self.player.position
         for ghost in self.ghosts:
             ghost.target = round(px), round(py)
-            ghost.update(dt)
+            ghost.update(dt, frozen=self.cheats.ghosts_frozen)
         # 全員が動き終わってから判定する
         self._check_ghost_collisions()
 
@@ -105,6 +111,7 @@ class Game:
 
     # いじけ中のゴーストは食べる。通常のゴーストに触れたらミス
     # （同じ tick に何体と当たってもミスは 1 回だけ）。消えているゴーストは無視
+    # 無敵のチート中はミスにならない（いじけ中のゴーストは食べられる）
     def _check_ghost_collisions(self) -> None:
         hit = False
         for ghost in self.ghosts:
@@ -115,7 +122,7 @@ class Game:
                 self.score += self.rules.points_per_ghost
             else:
                 hit = True
-        if hit:
+        if hit and not self.cheats.invincible:
             self._lose_life()
 
     def _lose_life(self) -> None:

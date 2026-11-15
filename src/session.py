@@ -1,6 +1,7 @@
 import random
 
-from src.config import Config, LevelConfig
+from src.cheats import Cheats
+from src.config import LIVES_MAX, Config, LevelConfig
 from src.game import Game, Rules
 from src.mazegen import Direction, Maze
 
@@ -18,6 +19,7 @@ class Session:
         self.level = 1  # 今のレベル（1 から数える）
         self.won = False
         self.clear_wait = 0.0  # クリアしてからの経過時間
+        self.cheats = Cheats()  # 全レベルの Game に同じものを渡す
         self.game = self._start_level(score=0, lives=config.lives)
 
     @property
@@ -54,6 +56,39 @@ class Session:
         self.clear_wait = 0.0
         self.game = self._start_level(self.game.score, self.game.lives)
 
+    # ---- チート（課題 VI.5）。チートモード中で、ゲームが続いている間だけ効く ----
+
+    def toggle_cheat_mode(self) -> None:
+        if self.cheats.enabled:
+            self.cheats.disable()
+        else:
+            self.cheats.enabled = True
+
+    def _can_cheat(self) -> bool:
+        return self.cheats.enabled and not self.finished
+
+    def toggle_invincible(self) -> None:
+        if self._can_cheat():
+            self.cheats.invincible = not self.cheats.invincible
+
+    def toggle_ghost_freeze(self) -> None:
+        if self._can_cheat():
+            self.cheats.ghosts_frozen = not self.cheats.ghosts_frozen
+
+    def toggle_fast(self) -> None:
+        if self._can_cheat():
+            self.cheats.fast = not self.cheats.fast
+
+    # 残機を 1 つ増やす。HUD に 1 桁で出すので、設定の上限までにする
+    def add_life(self) -> None:
+        if self._can_cheat():
+            self.game.lives = min(self.game.lives + 1, LIVES_MAX)
+
+    # 今のレベルをすぐクリアした扱いにして次へ（最後のレベルなら勝ち）
+    def skip_level(self) -> None:
+        if self._can_cheat():
+            self.next_level()
+
     # 迷路はレベル 1 だけ設定のシードで作り、2 からはランダム（シード 0）
     def _start_level(self, score: int, lives: int) -> Game:
         level: LevelConfig = self.config.levels[self.level - 1]
@@ -65,4 +100,5 @@ class Session:
             points_per_super_pacgum=self.config.points_per_super_pacgum,
             points_per_ghost=self.config.points_per_ghost,
         )
-        return Game(maze, self.rng, rules, score=score, lives=lives)
+        return Game(maze, self.rng, rules, score=score, lives=lives,
+                    cheats=self.cheats)

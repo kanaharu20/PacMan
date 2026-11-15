@@ -38,6 +38,14 @@ HUD_ITEMS_X = (MARGIN, 140, 255, 335, 430)
 # HUD の文字が全部入る幅。迷路がこれより狭いときは、プレイ領域をこの幅にして
 # 迷路を左右の真ん中に置く（"GAME OVER" が約 98px なので 430 + 98 に余白を足す）
 HUD_MIN_WIDTH = 580
+# チートモード中に HUD の右に出す表示。プレイ領域の左端からの位置（固定の座標）
+# 一番狭い迷路でもウィンドウに収まるように決めた（tests/test_cheats.py で確認）
+CHEAT_HUD_X = 590
+CHEAT_LABELS = ("CHEAT", "1 INVINCIBLE", "2 FREEZE", "3 FAST")
+CHEAT_ITEMS_X = (0, 67, 181, 269)  # CHEAT_LABELS それぞれの位置
+CHEAT_COLOR = (255, 80, 80)
+CHEAT_ON_COLOR = (255, 220, 0)  # 入っている機能
+CHEAT_OFF_COLOR = (110, 110, 110)  # 切れている機能
 
 
 # 文字は mlx_string_put と同じ使い方だけにする:
@@ -146,6 +154,21 @@ class Renderer:
         for x, text in zip(HUD_ITEMS_X, texts):
             self.text.put_string(screen, self.origin_x + x,
                                  self.origin_y + 6, TEXT_COLOR, text)
+        if session.cheats.enabled:
+            self._draw_cheats(screen, session)
+
+    def _draw_cheats(self, screen: pygame.Surface, session: Session) -> None:
+        cheats = session.cheats
+        colors = (CHEAT_COLOR, self._cheat_color(cheats.invincible),
+                  self._cheat_color(cheats.ghosts_frozen),
+                  self._cheat_color(cheats.fast))
+        for x, text, color in zip(CHEAT_ITEMS_X, CHEAT_LABELS, colors):
+            self.text.put_string(screen, self.origin_x + CHEAT_HUD_X + x,
+                                 self.origin_y + 6, color, text)
+
+    @staticmethod
+    def _cheat_color(on: bool) -> tuple[int, int, int]:
+        return CHEAT_ON_COLOR if on else CHEAT_OFF_COLOR
 
     def _draw_maze(self, screen: pygame.Surface) -> None:
         half = WALL // 2

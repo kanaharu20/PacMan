@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pygame
@@ -22,7 +23,7 @@ CURSOR_OFFSET = 24  # 選んでいる項目の左に出す ">" の位置
 TEXT_X = 360  # 説明などの長い文の左端
 TEXT_TOP = 150
 SMALL_LINE_HEIGHT = 30
-BOTTOM_HINT_Y = 720  # 説明などの画面の一番下の案内の位置
+BOTTOM_HINT_Y = 780  # 説明などの画面の一番下の案内の位置
 
 TITLE_COLOR = (255, 220, 0)
 TEXT_COLOR = (255, 255, 255)
@@ -40,6 +41,20 @@ STEER_KEYS = {
     pygame.K_DOWN: Direction.DOWN, pygame.K_s: Direction.DOWN,
     pygame.K_LEFT: Direction.LEFT, pygame.K_a: Direction.LEFT,
     pygame.K_RIGHT: Direction.RIGHT, pygame.K_d: Direction.RIGHT,
+}
+CHEAT_MODE_KEY = pygame.K_c
+# チートモード中だけ効くキー（テンキーの数字も同じ）。Session のメソッドを呼ぶ
+CHEAT_KEYS: dict[int, Callable[[Session], None]] = {
+    pygame.K_1: Session.toggle_invincible,
+    pygame.K_2: Session.toggle_ghost_freeze,
+    pygame.K_3: Session.toggle_fast,
+    pygame.K_4: Session.add_life,
+    pygame.K_5: Session.skip_level,
+    pygame.K_KP1: Session.toggle_invincible,
+    pygame.K_KP2: Session.toggle_ghost_freeze,
+    pygame.K_KP3: Session.toggle_fast,
+    pygame.K_KP4: Session.add_life,
+    pygame.K_KP5: Session.skip_level,
 }
 
 
@@ -152,6 +167,10 @@ class PlayScreen(Screen):
             return PauseScreen(self.ctx, self)
         if key in STEER_KEYS:
             self.session.steer(STEER_KEYS[key])
+        elif key == CHEAT_MODE_KEY:
+            self.session.toggle_cheat_mode()
+        elif key in CHEAT_KEYS:  # チートモードでなければ Session が無視する
+            CHEAT_KEYS[key](self.session)
         return self
 
     def update(self, dt: float) -> Screen | None:
@@ -268,6 +287,7 @@ class InstructionsScreen(InfoScreen):
             "CONTROLS",
             "  Move: arrow keys or WASD",
             "  Pause: ESC or P",
+            "  Cheat mode: C (see below)",
             "  Menus: UP/DOWN to choose, ENTER to select",
             "",
             "RULES",
@@ -285,6 +305,12 @@ class InstructionsScreen(InfoScreen):
             f" You have {config.lives}.",
             "  Each level has a time limit (TIME at the top).",
             "  The game is over when time runs out or no lives are left.",
+            "",
+            "CHEAT MODE (for reviewers)",
+            "  C: turn cheat mode on/off. It shows CHEAT at the top right.",
+            "  1: invincible   2: freeze ghosts   3: fast player"
+            "   (press again to turn off)",
+            "  4: +1 life   5: skip the level",
         ]
 
 
