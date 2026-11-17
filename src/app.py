@@ -3,6 +3,7 @@ import time
 import pygame
 
 from src.config import Config
+from src.highscore import HighscoreTable
 from src.render import WINDOW_SIZE, TextWriter
 from src.screens import Context, MainMenuScreen, Screen
 
@@ -17,7 +18,9 @@ class App:
         # どの画面でも同じ大きさのウィンドウを使う
         self.window = pygame.display.set_mode(WINDOW_SIZE)  # mlx_new_window
         pygame.display.set_caption("Pac-Man")
-        ctx = Context(config, TextWriter())
+        # ハイスコアはゲームの開始時に読み込む（課題 V.5）
+        highscores = HighscoreTable.load(config.highscore_filename)
+        ctx = Context(config, TextWriter(), highscores)
         self.screen: Screen | None = MainMenuScreen(ctx)
 
     def run(self) -> None:

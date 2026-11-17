@@ -5,6 +5,7 @@ import pygame
 
 from src.config import Config
 from src.game import FRIGHT_TIME, GHOST_RESPAWN_DELAY
+from src.highscore import MAX_ENTRIES, NAME_MAX, HighscoreTable, valid_name
 from src.mazegen import Direction
 from src.render import Renderer, TextWriter, solid_image
 from src.session import Session
@@ -24,6 +25,11 @@ TEXT_X = 360  # 説明などの長い文の左端
 TEXT_TOP = 150
 SMALL_LINE_HEIGHT = 30
 BOTTOM_HINT_Y = 780  # 説明などの画面の一番下の案内の位置
+# ハイスコアの列の位置。"10." が 22px、一番幅の広い名前 "WWWWWWWWWW" が 150px
+RANK_X = TEXT_X
+NAME_X = TEXT_X + 50
+SCORE_X = TEXT_X + 220
+NAME_INPUT_X = MENU_X + 170  # "ENTER YOUR NAME:" (160px) の右
 
 TITLE_COLOR = (255, 220, 0)
 TEXT_COLOR = (255, 255, 255)
@@ -42,6 +48,7 @@ STEER_KEYS = {
     pygame.K_LEFT: Direction.LEFT, pygame.K_a: Direction.LEFT,
     pygame.K_RIGHT: Direction.RIGHT, pygame.K_d: Direction.RIGHT,
 }
+CONFIRM_KEYS = (pygame.K_RETURN, pygame.K_KP_ENTER)  # 名前入力中は SPACE は文字
 CHEAT_MODE_KEY = pygame.K_c
 # チートモード中だけ効くキー（テンキーの数字も同じ）。Session のメソッドを呼ぶ
 CHEAT_KEYS: dict[int, Callable[[Session], None]] = {
@@ -56,13 +63,26 @@ CHEAT_KEYS: dict[int, Callable[[Session], None]] = {
     pygame.K_KP4: Session.add_life,
     pygame.K_KP5: Session.skip_level,
 }
+# 名前入力で使えるキーと文字。MLX のキーフックと同じく、キーの番号だけから
+# 文字を決める（英字は大文字にする）。英数字とスペースだけ（課題 V.5）
+NAME_KEYS: dict[int, str] = {
+    **{pygame.K_a + i: chr(ord("A") + i) for i in range(26)},
+    **{pygame.K_0 + i: str(i) for i in range(10)},
+    **{key: str(i) for i, key in enumerate(
+        (pygame.K_KP0, pygame.K_KP1, pygame.K_KP2, pygame.K_KP3, pygame.K_KP4,
+         pygame.K_KP5, pygame.K_KP6, pygame.K_KP7, pygame.K_KP8,
+         pygame.K_KP9))},
+    pygame.K_SPACE: " ",
+}
 
 
-# 全部の画面で共有するもの。フォントは最初に 1 回だけ作る
+# 全部の画面で共有するもの。フォントは最初に 1 回だけ作る。
+# ハイスコアは起動時に 1 回だけ読み込み、名前が入力されるたびに保存する
 @dataclass
 class Context:
     config: Config
     text: TextWriter
+    highscores: HighscoreTable
 
 
 class Screen:
@@ -225,7 +245,8 @@ class PauseScreen(Screen):
                                  "ESC / P: resume")
 
 
-# ゲームオーバーと勝利の画面。名前の入力はハイスコアを作るときに追加する
+# ゲームオーバーと勝利の画面。勝っても負けても名前を入力してハイスコアに登録できる
+# （課題 V.5 / VI.8）。ENTER で登録してハイスコアの画面へ、ESC で登録せずにメニューへ
 class ResultScreen(Screen):
     def __init__(self, ctx: Context, won: bool, time_up: bool,
                  score: int) -> None:
@@ -233,11 +254,32 @@ class ResultScreen(Screen):
         self.won = won
         self.time_up = time_up
         self.score = score
+        self.name = ""
 
     def handle_key(self, key: int) -> Screen | None:
-        if key in SELECT_KEYS or key == pygame.K_ESCAPE:
+        if key == pygame.K_ESCAPE:
             return MainMenuScreen(self.ctx)
+        if key in CONFIRM_KEYS:
+            return self._register() if valid_name(self.name) else self
+        if key == pygame.K_BACKSPACE:
+            self.name = self.name[:-1]
+        elif key in NAME_KEYS and len(self.name) < NAME_MAX:
+            char = NAME_KEYS[key]
+            if char != " " or self.name:  # 先頭の空白は入れない
+                self.name += char
         return self
+
+    # 一覧に追加して、上位 10 件に入ったらファイルに保存する
+    def _register(self) -> Screen:
+        table = self.ctx.highscores
+        rank = table.add(self.name.rstrip(), self.score)
+        if rank is None:
+            note = f"Your score did not make the top {MAX_ENTRIES}."
+        elif not table.save():
+            note = "Could not save the highscores (see the terminal)."
+        else:
+            note = f"You are number {rank + 1}!"
+        return HighscoresScreen(self.ctx, highlight=rank, note=note)
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill((0, 0, 0))
@@ -251,8 +293,17 @@ class ResultScreen(Screen):
         self.put_lines(surface, MENU_X, MENU_TOP,
                        [message, f"FINAL SCORE  {self.score}"], TEXT_COLOR,
                        LINE_HEIGHT)
-        self.ctx.text.put_string(surface, MENU_X, MENU_TOP + 3 * LINE_HEIGHT,
-                                 HINT_COLOR, "ENTER: back to main menu")
+        name_y = MENU_TOP + 3 * LINE_HEIGHT
+        self.ctx.text.put_string(surface, MENU_X, name_y, TEXT_COLOR,
+                                 "ENTER YOUR NAME:")
+        cursor = "_" if len(self.name) < NAME_MAX else ""
+        self.ctx.text.put_string(surface, NAME_INPUT_X, name_y,
+                                 SELECTED_COLOR, self.name + cursor)
+        self.put_lines(surface, MENU_X, name_y + LINE_HEIGHT, [
+            f"Letters, digits and spaces (up to {NAME_MAX})."
+            "  BACKSPACE: delete",
+            "ENTER: save   ESC: skip and go back to the main menu",
+        ], HINT_COLOR)
 
 
 # メインメニューから開く、文を表示するだけの画面
@@ -314,8 +365,31 @@ class InstructionsScreen(InfoScreen):
         ]
 
 
+# 上位 10 件の順位・名前・得点。名前を登録した直後は、その行を黄色にする
 class HighscoresScreen(InfoScreen):
     title = "HIGHSCORES"
 
+    def __init__(self, ctx: Context, highlight: int | None = None,
+                 note: str = "") -> None:
+        super().__init__(ctx)
+        self.highlight = highlight
+        self.note = note
+
     def lines(self) -> list[str]:
-        return ["No highscores yet."]  # ハイスコアの保存を作るときに中身を入れる
+        if self.ctx.highscores.entries:
+            return []
+        return ["No highscores yet."]
+
+    # 文字ごとに幅が違うフォントなので、列は固定の x 座標で揃える
+    def draw(self, surface: pygame.Surface) -> None:
+        super().draw(surface)
+        for i, entry in enumerate(self.ctx.highscores.entries):
+            y = TEXT_TOP + i * LINE_HEIGHT
+            color = SELECTED_COLOR if i == self.highlight else TEXT_COLOR
+            for x, text in ((RANK_X, f"{i + 1}."), (NAME_X, entry.name),
+                            (SCORE_X, str(entry.score))):
+                self.ctx.text.put_string(surface, x, y, color, text)
+        if self.note:
+            self.ctx.text.put_string(
+                surface, TEXT_X, TEXT_TOP + (MAX_ENTRIES + 1) * LINE_HEIGHT,
+                SELECTED_COLOR, self.note)

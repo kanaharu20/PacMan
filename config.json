@@ -16,6 +16,10 @@
     "points_per_super_pacgum": 50,
     "points_per_ghost": 200,
 
+    # ハイスコア（上位 10 件）を保存するファイル。相対パスなら起動したフォルダから
+    #   読めない・壊れているときは空の一覧から始め、ゲームは止まりません
+    "highscore_filename": "highscores.json",
+
     # レベルの制限時間（秒、10〜999）。0 になったら即ゲームオーバー
     #   levels の中で "level_max_time" を書いたレベルは、そちらを使います
     "level_max_time": 90,

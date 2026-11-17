@@ -43,6 +43,8 @@ class Config:
     points_per_pacgum: int = 10
     points_per_super_pacgum: int = 50
     points_per_ghost: int = 200
+    # ハイスコアの保存先。相対パスなら起動したフォルダから
+    highscore_filename: str = "highscores.json"
     levels: list[LevelConfig] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -107,6 +109,8 @@ def parse_config(data: dict[str, Any]) -> Config:
             data, "points_per_super_pacgum", default.points_per_super_pacgum),
         points_per_ghost=_read_points(data, "points_per_ghost",
                                       default.points_per_ghost),
+        highscore_filename=_read_filename(data, "highscore_filename",
+                                          default.highscore_filename),
         levels=_read_levels(data, fallback),
     )
 
@@ -161,6 +165,21 @@ def _warn_unknown_keys(data: dict[str, Any], known: set[str],
     for key in data:
         if key not in known:
             log.warning("config: unknown key '%s%s' is ignored", prefix, key)
+
+
+# ファイル名は空でない文字列。実際に読み書きできるかは HighscoreTable が確かめる
+# （できなくても警告だけでゲームは続く）
+def _read_filename(data: dict[str, Any], key: str, default: str) -> str:
+    if key not in data:
+        log.warning("config: '%s' is missing, using default '%s'",
+                    key, default)
+        return default
+    value = data[key]
+    if not isinstance(value, str) or value.strip() == "":
+        log.warning("config: '%s' must be a file name (got %s), "
+                    "using default '%s'", key, json.dumps(value), default)
+        return default
+    return value
 
 
 def _read_points(data: dict[str, Any], key: str, default: int) -> int:
