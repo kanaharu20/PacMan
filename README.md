@@ -289,6 +289,14 @@ grid = generator.maze          # grid[y][x], an int per cell
 
 ## General Software Architecture
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.png">
+  <img alt="Module architecture: pygame-ce feeds key events to App, which runs the screens; screens drive Session and Game, and Renderer draws back through pygame-ce. Session builds the Maze through mazegen.py (mazegenerator wheel); config.py reads config.json and highscore.py reads and writes highscores.json. Dev tooling: Makefile, uv, pytest, flake8, mypy." src="docs/architecture.png">
+</picture>
+
+Blue arrows: the main loop (input → update → draw). Grey arrows: calls
+between modules. Dashed arrows: development tools.
+
 ```
 pac-man.py            entry point: checks the argument, loads the config, starts App
 src/
