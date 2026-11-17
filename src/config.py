@@ -1,3 +1,10 @@
+"""コメント付き JSON の設定ファイルを読み、検証して Config にする。
+
+値が足りない・おかしいときは既定値か範囲内の値に直し、警告のログを出して
+続ける。続行できないとき（ファイルが読めない・JSON が壊れている）だけ
+ConfigError を投げる。
+"""
+
 import json
 import logging
 from dataclasses import dataclass, field
@@ -21,11 +28,13 @@ LEVELS_MIN, LEVELS_MAX = 10, 50
 
 
 class ConfigError(Exception):
-    """設定ファイルが読めない・JSON として壊れている（続行できない）エラー"""
+    """設定ファイルが読めない・JSON として壊れている（続行できない）エラー。"""
 
 
 @dataclass(frozen=True)
 class LevelConfig:
+    """1 レベルの設定（迷路の横と縦のマス数、制限時間）。"""
+
     width: int = 21
     height: int = 21
     level_max_time: int = 90  # 秒
@@ -33,6 +42,8 @@ class LevelConfig:
 
 @dataclass
 class Config:
+    """検証済みのゲームの設定。どの値も範囲内に直してある。"""
+
     # width / height / level_max_time は、levels の中で省略したときの値。
     # levels がないときは、この大きさのレベルを LEVELS_MIN 個作る
     width: int = 21  # 迷路の横のマス数
@@ -48,21 +59,31 @@ class Config:
     levels: list[LevelConfig] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        """levels が空なら、既定の大きさのレベルを LEVELS_MIN 個入れる。"""
         if not self.levels:
             self.levels = [self.default_level()] * LEVELS_MIN
 
     def default_level(self) -> LevelConfig:
+        """levels の中で省略した値を埋めるのに使うレベルの設定。"""
         return LevelConfig(self.width, self.height, self.level_max_time)
 
 
-# 「#」で始まる行（前に空白があってもよい）をコメントとして消す。
-# 行番号がずれないように、消した行は空行にしておく
 def strip_comments(text: str) -> str:
+    """「#」で始まる行（前に空白があってもよい）をコメントとして消す。
+
+    JSON のエラーの行番号がずれないように、消した行は空行にしておく。
+    行の途中の「#」は消さない（文字列の中の「#」を壊さないため）。
+    """
     return "\n".join("" if line.lstrip().startswith("#") else line
                      for line in text.splitlines())
 
 
 def load_config(path: str) -> Config:
+    """path の設定ファイルを読んで Config を返す。
+
+    ファイルがない・読めない・UTF-8 でない・JSON として壊れている・一番外が
+    オブジェクトでないときは、理由を書いた ConfigError を投げる。
+    """
     try:
         with open(path, encoding="utf-8") as file:
             text = file.read()
@@ -83,8 +104,12 @@ def load_config(path: str) -> Config:
     return parse_config(data)
 
 
-# 値が足りない・おかしいときは既定値か範囲内の値に直して、ログを出して続ける
 def parse_config(data: dict[str, Any]) -> Config:
+    """JSON のオブジェクト data を検証して Config にする。
+
+    値が足りない・おかしいときは既定値か範囲内の値に直して、ログを出して
+    続ける。知らないキーは警告を出して無視する。
+    """
     default = Config()
     _warn_unknown_keys(data, set(vars(default)), "")
     # levels があるときは、width / height / level_max_time は省略してよい
@@ -115,10 +140,14 @@ def parse_config(data: dict[str, Any]) -> Config:
     )
 
 
-# levels: [{"width": 15, "height": 11, "level_max_time": 90}, ...]
-# 各レベルで省略したキーは fallback（一番外の width / height / level_max_time）
 def _read_levels(data: dict[str, Any],
                  fallback: LevelConfig) -> list[LevelConfig]:
+    """levels: [{"width": 15, "height": 11, "level_max_time": 90}, ...] を読む。
+
+    各レベルで省略したキーは fallback（一番外の width / height /
+    level_max_time）を使う。LEVELS_MAX 個より多ければ切り捨て、LEVELS_MIN 個
+    より少なければ fallback のレベルを足す。
+    """
     if "levels" not in data:
         log.warning("config: 'levels' is missing, using %d levels of %dx%d",
                     LEVELS_MIN, fallback.width, fallback.height)
@@ -143,6 +172,7 @@ def _read_levels(data: dict[str, Any],
 
 
 def _read_level(entry: Any, index: int, fallback: LevelConfig) -> LevelConfig:
+    """levels の index 番目の要素 entry を読む。オブジェクトでなければ fallback。"""
     name = f"levels[{index}]"
     if not isinstance(entry, dict):
         log.warning("config: '%s' must be an object (got %s), using %dx%d",
@@ -162,14 +192,18 @@ def _read_level(entry: Any, index: int, fallback: LevelConfig) -> LevelConfig:
 
 def _warn_unknown_keys(data: dict[str, Any], known: set[str],
                        prefix: str) -> None:
+    """data のうち known にないキーを、無視すると警告する。"""
     for key in data:
         if key not in known:
             log.warning("config: unknown key '%s%s' is ignored", prefix, key)
 
 
-# ファイル名は空でない文字列。実際に読み書きできるかは HighscoreTable が確かめる
-# （できなくても警告だけでゲームは続く）
 def _read_filename(data: dict[str, Any], key: str, default: str) -> str:
+    """ファイル名（空でない文字列）を読む。足りない・おかしいときは default。
+
+    実際に読み書きできるかは HighscoreTable が確かめる
+    （できなくても警告だけでゲームは続く）。
+    """
     if key not in data:
         log.warning("config: '%s' is missing, using default '%s'",
                     key, default)
@@ -183,12 +217,19 @@ def _read_filename(data: dict[str, Any], key: str, default: str) -> str:
 
 
 def _read_points(data: dict[str, Any], key: str, default: int) -> int:
+    """得点の値を読む（POINTS_MIN〜POINTS_MAX の整数）。"""
     return _read_int(data, key, default, POINTS_MIN, POINTS_MAX)
 
 
 def _read_int(data: dict[str, Any], key: str, default: int,
               low: int, high: int, warn_missing: bool = True,
               prefix: str = "") -> int:
+    """data[key] を low〜high の整数として読む。
+
+    キーがなければ default（warn_missing なら警告を出す）。整数でなければ
+    default、範囲外なら範囲内の一番近い値にして警告を出す。prefix は
+    警告に出すキーの前に付ける名前（"levels[0]" など）。
+    """
     name = f"{prefix}.{key}" if prefix else key
     if key not in data:
         if warn_missing:

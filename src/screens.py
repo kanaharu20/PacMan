@@ -1,3 +1,5 @@
+"""画面（メニュー・ゲーム・一時停止・結果・説明・ハイスコア）と画面遷移。"""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -76,48 +78,65 @@ NAME_KEYS: dict[int, str] = {
 }
 
 
-# 全部の画面で共有するもの。フォントは最初に 1 回だけ作る。
-# ハイスコアは起動時に 1 回だけ読み込み、名前が入力されるたびに保存する
 @dataclass
 class Context:
+    """全部の画面で共有するもの（設定・文字の書き手・ハイスコア）。
+
+    フォントは最初に 1 回だけ作る。ハイスコアは起動時に 1 回だけ読み込み、
+    名前が入力されるたびに保存する。
+    """
+
     config: Config
     text: TextWriter
     highscores: HighscoreTable
 
 
 class Screen:
+    """画面の親クラス。キー入力を受け取る・時間を進める・描くの 3 つを持つ。"""
+
     def __init__(self, ctx: Context) -> None:
+        """共有の ctx を持った画面を作る。"""
         self.ctx = ctx
 
     def handle_key(self, key: int) -> "Screen | None":
+        """key が押されたときに呼ばれ、次に表示する画面を返す。
+
+        そのままなら self、終了するなら None を返す（子クラスで実装する）。
+        """
         raise NotImplementedError
 
     def update(self, dt: float) -> "Screen | None":
+        """dt 秒ぶん時間を進め、次に表示する画面を返す。既定では何もしない。"""
         return self
 
     def draw(self, surface: pygame.Surface) -> None:
+        """surface に画面を描く（子クラスで実装する）。"""
         raise NotImplementedError
 
     def put_lines(self, surface: pygame.Surface, x: int, y: int,
                   lines: list[str], color: tuple[int, int, int],
                   line_height: int = SMALL_LINE_HEIGHT) -> None:
+        """(x, y) から下へ line_height ずつずらして lines を 1 行ずつ書く。"""
         for i, line in enumerate(lines):
             self.ctx.text.put_string(surface, x, y + i * line_height,
                                      color, line)
 
 
-# 上下キーで選んで Enter で決める項目のリスト。端まで行ったら反対の端に戻る
 class Menu:
+    """上下キーで選んで Enter で決める項目のリスト。端まで行ったら反対の端に戻る。"""
+
     def __init__(self, items: list[str]) -> None:
+        """items を並べ、最初の項目を選んだ状態にする。"""
         self.items = items
         self.index = 0
 
     @property
     def selected(self) -> str:
+        """今選んでいる項目。"""
         return self.items[self.index]
 
-    # 上下キーなら選択を動かして True。それ以外のキーは False
     def move(self, key: int) -> bool:
+        """上下キーなら選択を動かして True。それ以外のキーは False。"""
         if key in UP_KEYS:
             self.index = (self.index - 1) % len(self.items)
         elif key in DOWN_KEYS:
@@ -128,6 +147,7 @@ class Menu:
 
     def draw(self, ctx: Context, surface: pygame.Surface,
              x: int, y: int) -> None:
+        """(x, y) から項目を縦に並べて書く。選んでいる項目は黄色で ">" を付ける。"""
         for i, item in enumerate(self.items):
             line_y = y + i * LINE_HEIGHT
             if i == self.index:
@@ -139,17 +159,21 @@ class Menu:
 
 
 class MainMenuScreen(Screen):
+    """メインメニュー（ゲーム開始・ハイスコア・遊び方・終了）。"""
+
     START = "START GAME"
     HIGHSCORES = "HIGHSCORES"
     INSTRUCTIONS = "INSTRUCTIONS"
     EXIT = "EXIT"
 
     def __init__(self, ctx: Context) -> None:
+        """4 つの項目のメニューを作る。"""
         super().__init__(ctx)
         self.menu = Menu([self.START, self.HIGHSCORES, self.INSTRUCTIONS,
                           self.EXIT])
 
     def handle_key(self, key: int) -> Screen | None:
+        """上下で選び、ENTER / SPACE で選んだ画面へ。ESC と EXIT で終了する。"""
         if self.menu.move(key):
             return self
         if key == pygame.K_ESCAPE:
@@ -166,6 +190,7 @@ class MainMenuScreen(Screen):
         return None  # EXIT
 
     def draw(self, surface: pygame.Surface) -> None:
+        """タイトル・メニュー・操作の案内を描く。"""
         surface.fill((0, 0, 0))
         self.ctx.text.put_string(surface, *TITLE_POS, TITLE_COLOR, "PAC-MAN")
         self.menu.draw(self.ctx, surface, MENU_X, MENU_TOP)
@@ -175,7 +200,10 @@ class MainMenuScreen(Screen):
 
 
 class PlayScreen(Screen):
+    """ゲーム中の画面。キーを Session の操作に変え、Session を進めて描く。"""
+
     def __init__(self, ctx: Context) -> None:
+        """新しいゲーム（レベル 1）を始める。"""
         super().__init__(ctx)
         # 「START GAME」のたびにレベル 1 から始める（前のゲームは使い回さない）
         self.session = Session(ctx.config)
@@ -183,6 +211,7 @@ class PlayScreen(Screen):
         self.end_wait = 0.0  # 終わってからの経過時間。結果を少し見せてから移る
 
     def handle_key(self, key: int) -> Screen | None:
+        """移動・一時停止・チートのキーを処理する。"""
         if key in PAUSE_KEYS and not self.session.finished:
             return PauseScreen(self.ctx, self)
         if key in STEER_KEYS:
@@ -194,6 +223,7 @@ class PlayScreen(Screen):
         return self
 
     def update(self, dt: float) -> Screen | None:
+        """ゲームを進める。終わったら END_DELAY 秒見せてから結果の画面へ。"""
         if not self.session.finished:
             self.session.update(dt)
             return self
@@ -205,6 +235,7 @@ class PlayScreen(Screen):
                             time_up=game.time_left == 0.0, score=game.score)
 
     def draw(self, surface: pygame.Surface) -> None:
+        """ゲーム画面を描く。"""
         # 次のレベルに進んだら迷路が変わるので、その迷路用の画像を作り直す
         # （ウィンドウの大きさは変えない）
         if self.renderer.maze is not self.session.game.maze:
@@ -212,12 +243,18 @@ class PlayScreen(Screen):
         self.renderer.draw(surface, self.session)
 
 
-# 一時停止中は止まったゲームの上に枠とメニューを重ねる。ゲームは同じものを持ち続ける
 class PauseScreen(Screen):
+    """一時停止メニュー（再開・メインメニューへ）。
+
+    止まったゲームの上に枠とメニューを重ねる。ゲームは同じものを持ち続ける
+    （update でゲームを進めないので、時間も止まる）。
+    """
+
     RESUME = "RESUME"
     MAIN_MENU = "MAIN MENU"
 
     def __init__(self, ctx: Context, play: PlayScreen) -> None:
+        """一時停止したゲームの画面 play を持って、メニューを作る。"""
         super().__init__(ctx)
         self.play = play
         self.menu = Menu([self.RESUME, self.MAIN_MENU])
@@ -226,6 +263,7 @@ class PauseScreen(Screen):
         self.panel_pos = (x, y)
 
     def handle_key(self, key: int) -> Screen | None:
+        """ESC / P か RESUME でゲームに戻り、MAIN MENU でゲームをやめる。"""
         if key in PAUSE_KEYS:
             return self.play
         if self.menu.move(key) or key not in SELECT_KEYS:
@@ -235,6 +273,7 @@ class PauseScreen(Screen):
         return MainMenuScreen(self.ctx)
 
     def draw(self, surface: pygame.Surface) -> None:
+        """止まったゲームを描き、その上に一時停止の枠とメニューを描く。"""
         self.play.draw(surface)
         surface.blit(self.panel, self.panel_pos)
         x, y = self.panel_pos
@@ -245,11 +284,16 @@ class PauseScreen(Screen):
                                  "ESC / P: resume")
 
 
-# ゲームオーバーと勝利の画面。勝っても負けても名前を入力してハイスコアに登録できる
-# （課題 V.5 / VI.8）。ENTER で登録してハイスコアの画面へ、ESC で登録せずにメニューへ
 class ResultScreen(Screen):
+    """ゲームオーバーと勝利の画面（最終得点と名前の入力）。
+
+    勝っても負けても名前を入力してハイスコアに登録できる（課題 V.5 / VI.8）。
+    ENTER で登録してハイスコアの画面へ、ESC で登録せずにメニューへ。
+    """
+
     def __init__(self, ctx: Context, won: bool, time_up: bool,
                  score: int) -> None:
+        """結果（勝ったか・時間切れか・最終得点）を持った画面を作る。"""
         super().__init__(ctx)
         self.won = won
         self.time_up = time_up
@@ -257,6 +301,7 @@ class ResultScreen(Screen):
         self.name = ""
 
     def handle_key(self, key: int) -> Screen | None:
+        """名前を 1 文字ずつ入力する。英数字とスペースだけ、最大 NAME_MAX 文字。"""
         if key == pygame.K_ESCAPE:
             return MainMenuScreen(self.ctx)
         if key in CONFIRM_KEYS:
@@ -269,8 +314,11 @@ class ResultScreen(Screen):
                 self.name += char
         return self
 
-    # 一覧に追加して、上位 10 件に入ったらファイルに保存する
     def _register(self) -> Screen:
+        """一覧に追加して、上位 10 件に入ったらファイルに保存する。
+
+        結果をハイスコアの画面に表示する（入った行は黄色）。
+        """
         table = self.ctx.highscores
         rank = table.add(self.name.rstrip(), self.score)
         if rank is None:
@@ -282,6 +330,7 @@ class ResultScreen(Screen):
         return HighscoresScreen(self.ctx, highlight=rank, note=note)
 
     def draw(self, surface: pygame.Surface) -> None:
+        """結果の見出し・最終得点・入力中の名前・操作の案内を描く。"""
         surface.fill((0, 0, 0))
         if self.won:
             title, message = "CONGRATULATIONS!", "You cleared every level!"
@@ -306,19 +355,23 @@ class ResultScreen(Screen):
         ], HINT_COLOR)
 
 
-# メインメニューから開く、文を表示するだけの画面
 class InfoScreen(Screen):
+    """メインメニューから開く、文を表示するだけの画面の親クラス。"""
+
     title = ""
 
     def lines(self) -> list[str]:
+        """見出しの下に書く行（子クラスで実装する）。"""
         raise NotImplementedError
 
     def handle_key(self, key: int) -> Screen | None:
+        """ENTER / SPACE / ESC でメインメニューに戻る。"""
         if key in SELECT_KEYS or key == pygame.K_ESCAPE:
             return MainMenuScreen(self.ctx)
         return self
 
     def draw(self, surface: pygame.Surface) -> None:
+        """見出し・本文・戻り方の案内を描く。"""
         surface.fill((0, 0, 0))
         self.ctx.text.put_string(surface, TEXT_X, TEXT_TOP - 50, TITLE_COLOR,
                                  self.title)
@@ -328,10 +381,15 @@ class InfoScreen(Screen):
 
 
 class InstructionsScreen(InfoScreen):
+    """遊び方の画面（操作・規則・チートモード）。"""
+
     title = "INSTRUCTIONS"
 
-    # 数字は設定とゲームの定数から作る（値を変えても説明がずれないように）
     def lines(self) -> list[str]:
+        """操作・規則・チートの説明。
+
+        数字は設定とゲームの定数から作る（値を変えても説明がずれないように）。
+        """
         config = self.ctx.config
         return [
             # 文字ごとに幅が違うフォントなので、空白で列を揃えない
@@ -365,23 +423,32 @@ class InstructionsScreen(InfoScreen):
         ]
 
 
-# 上位 10 件の順位・名前・得点。名前を登録した直後は、その行を黄色にする
 class HighscoresScreen(InfoScreen):
+    """上位 10 件の順位・名前・得点の画面。"""
+
     title = "HIGHSCORES"
 
     def __init__(self, ctx: Context, highlight: int | None = None,
                  note: str = "") -> None:
+        """highlight 番目（0 から数える）の行を黄色にし、下に note を出す。
+
+        名前を登録した直後に、登録した行と結果を見せるのに使う。
+        """
         super().__init__(ctx)
         self.highlight = highlight
         self.note = note
 
     def lines(self) -> list[str]:
+        """一覧が空のときだけ「まだない」と書く（一覧は draw で書く）。"""
         if self.ctx.highscores.entries:
             return []
         return ["No highscores yet."]
 
-    # 文字ごとに幅が違うフォントなので、列は固定の x 座標で揃える
     def draw(self, surface: pygame.Surface) -> None:
+        """一覧を順位・名前・得点の 3 列で描く。
+
+        文字ごとに幅が違うフォントなので、列は固定の x 座標で揃える。
+        """
         super().draw(surface)
         for i, entry in enumerate(self.ctx.highscores.entries):
             y = TEXT_TOP + i * LINE_HEIGHT

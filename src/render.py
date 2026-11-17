@@ -1,3 +1,5 @@
+"""ゲーム画面（迷路・ガム・キャラクター・HUD）の描画。"""
+
 import math
 
 import pygame
@@ -55,25 +57,34 @@ FONT_SIZE = 24
 
 
 class TextWriter:
+    """画面に文字を書く。mlx_string_put と同じ使い方だけを提供する。"""
+
     def __init__(self) -> None:
+        """pygame の内蔵フォントを 1 回だけ読み込む。"""
         self.font = pygame.font.Font(None, FONT_SIZE)  # 内蔵フォント
 
-    # mlx_string_put(mlx, win, x, y, color, text) の代わり
     def put_string(self, screen: pygame.Surface, x: int, y: int,
                    color: tuple[int, int, int], text: str) -> None:
+        """screen の (x, y) を左上にして text を color で書く。
+
+        mlx_string_put(mlx, win, x, y, color, text) の代わり。
+        """
         screen.blit(self.font.render(text, False, color), (x, y))
 
 
 def solid_image(width: int, height: int,
                 color: tuple[int, int, int]) -> pygame.Surface:
-    # mlx_new_image + mlx_get_data_addr で全ピクセルに色を書くのと同じ
+    """width x height の、全部 color で塗った画像を作る。
+
+    mlx_new_image + mlx_get_data_addr で全ピクセルに色を書くのと同じ。
+    """
     image = pygame.Surface((width, height))
     image.fill(color)
     return image
 
 
-# プレイ領域（HUD ＋ 迷路）の大きさ。迷路の大きさで決まる
 def play_area_size(width: int, height: int) -> tuple[int, int]:
+    """width x height マスの迷路のプレイ領域（HUD ＋ 迷路）のピクセル数。"""
     return (max(width * CELL + 2 * MARGIN, HUD_MIN_WIDTH),
             height * CELL + MAZE_TOP + MARGIN)
 
@@ -82,14 +93,20 @@ def play_area_size(width: int, height: int) -> tuple[int, int]:
 WINDOW_SIZE = play_area_size(MAZE_WIDTH_MAX, MAZE_HEIGHT_MAX)
 
 
-# プレイ領域の左上の座標。ウィンドウの真ん中に置く
 def play_area_origin(maze: Maze) -> tuple[int, int]:
+    """プレイ領域の左上の座標。プレイ領域はウィンドウの真ん中に置く。"""
     width, height = play_area_size(maze.width, maze.height)
     return (WINDOW_SIZE[0] - width) // 2, (WINDOW_SIZE[1] - height) // 2
 
 
 class Renderer:
+    """1 つの迷路のゲーム画面を描く。迷路が変わったら作り直す。
+
+    使う画像は最初に全部作っておき、毎フレームはそれを貼るだけにする。
+    """
+
     def __init__(self, maze: Maze, text: TextWriter) -> None:
+        """maze の描画位置を決め、壁・ガム・キャラクターの画像を作る。"""
         self.maze = maze
         self.text = text
         # HUD と迷路は、ウィンドウの真ん中に置いたプレイ領域の中に描く
@@ -113,6 +130,7 @@ class Renderer:
                                          FRIGHT_ENDING_COLOR)
 
     def draw(self, screen: pygame.Surface, session: Session) -> None:
+        """session の今の状態を screen に描く。状態は読むだけで書き換えない。"""
         game = session.game
         screen.fill((0, 0, 0))  # mlx_clear_window
         self._draw_maze(screen)
@@ -130,14 +148,18 @@ class Renderer:
         self._draw_mover(screen, self.player, game.player)
         self._draw_hud(screen, session)
 
-    # いじけ中は青。終わる直前は青と白を交互に出して、もうすぐ戻ると知らせる
     def _frightened_image(self, time_left: float) -> pygame.Surface:
+        """いじけの残りが time_left 秒のゴーストの画像。
+
+        いじけ中は青。終わる直前は青と白を交互に出して、もうすぐ戻ると知らせる。
+        """
         if (time_left < FRIGHT_BLINK_TIME
                 and int(time_left * FRIGHT_BLINKS_PER_SEC * 2) % 2 == 0):
             return self.fright_ending
         return self.frightened
 
     def _draw_hud(self, screen: pygame.Surface, session: Session) -> None:
+        """上の帯に得点・レベル・残機・残り時間・状態（とチート）を書く。"""
         game = session.game
         status = ""
         if session.won:
@@ -158,6 +180,7 @@ class Renderer:
             self._draw_cheats(screen, session)
 
     def _draw_cheats(self, screen: pygame.Surface, session: Session) -> None:
+        """HUD の右に CHEAT と各機能を書く。入っている機能は黄色、切れたら灰色。"""
         cheats = session.cheats
         colors = (CHEAT_COLOR, self._cheat_color(cheats.invincible),
                   self._cheat_color(cheats.ghosts_frozen),
@@ -168,9 +191,11 @@ class Renderer:
 
     @staticmethod
     def _cheat_color(on: bool) -> tuple[int, int, int]:
+        """チートの機能の文字の色。on なら入っている色、そうでなければ灰色。"""
         return CHEAT_ON_COLOR if on else CHEAT_OFF_COLOR
 
     def _draw_maze(self, screen: pygame.Surface) -> None:
+        """迷路の壁と「42」のセルを描く。壁はセルの境目に細い画像を貼る。"""
         half = WALL // 2
         for y in range(self.maze.height):
             for x in range(self.maze.width):
@@ -189,18 +214,19 @@ class Renderer:
                     if self.maze.has_wall(x, y, direction):
                         screen.blit(image, (wx, wy))
 
-    # image を (x, y) の中心に合わせて貼る。x, y は小数でもよい
     def _draw_centered(self, screen: pygame.Surface, image: pygame.Surface,
                        x: float, y: float) -> None:
+        """image をセル (x, y) の中心に合わせて貼る。x, y は小数でもよい。"""
         cx, cy = self._cell_center(x, y)
         screen.blit(image, (round(cx - image.get_width() / 2),
                             round(cy - image.get_height() / 2)))
 
-    # セル (x, y) の中心のピクセル座標
     def _cell_center(self, x: float, y: float) -> tuple[float, float]:
+        """セル (x, y) の中心のピクセル座標。"""
         return (self.left + (x + 0.5) * CELL,
                 self.top + (y + 0.5) * CELL)
 
     def _draw_mover(self, screen: pygame.Surface, image: pygame.Surface,
                     mover: Mover) -> None:
+        """キャラクター mover を、今の位置（セルの途中も含む）に描く。"""
         self._draw_centered(screen, image, *mover.position)

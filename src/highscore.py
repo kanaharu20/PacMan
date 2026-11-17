@@ -1,3 +1,5 @@
+"""ハイスコア（上位 10 件）の検証・読み込み・保存（課題 V.5）。"""
+
 import contextlib
 import json
 import logging
@@ -16,27 +18,33 @@ NAME_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 @dataclass(frozen=True)
 class Entry:
+    """ハイスコアの 1 行（名前と得点）。"""
+
     name: str
     score: int
 
 
-# 名前の決まり: 1〜10 文字、英数字とスペースだけ、空白だけはだめ
 def valid_name(name: str) -> bool:
+    """名前の決まり: 1〜10 文字、英数字とスペースだけ、空白だけはだめ。"""
     return (0 < len(name) <= NAME_MAX and set(name) <= NAME_CHARS
             and name.strip() != "")
 
 
-# 得点の決まり: 0 以上の整数（JSON の true / false は数として受け取らない）
 def valid_score(score: Any) -> bool:
+    """得点の決まり: 0 以上の整数（JSON の true / false は数として受け取らない）。"""
     return (isinstance(score, int) and not isinstance(score, bool)
             and score >= 0)
 
 
-# ハイスコアの一覧（得点の高い順、最大 10 件）とその保存先。
-# ファイルは JSON: {"highscores": [{"name": "ABC", "score": 1200}, ...]}
-# 読めない・壊れているときは警告を出して空の一覧から始め、ゲームは止めない
 class HighscoreTable:
+    """ハイスコアの一覧（得点の高い順、最大 10 件）とその保存先。
+
+    ファイルは JSON: {"highscores": [{"name": "ABC", "score": 1200}, ...]}
+    読めない・壊れているときは警告を出して空の一覧から始め、ゲームは止めない。
+    """
+
     def __init__(self, path: str, entries: list[Entry] | None = None) -> None:
+        """保存先 path の一覧を作る。entries のうち上位 10 件を高い順に入れる。"""
         self.path = path
         self.entries: list[Entry] = []
         for entry in entries or []:
@@ -44,6 +52,11 @@ class HighscoreTable:
 
     @classmethod
     def load(cls, path: str) -> "HighscoreTable":
+        """path から一覧を読み込む。
+
+        ファイルがなければ空の一覧。読めない・JSON が壊れている・形が違う
+        ときは警告を出して空の一覧。名前や得点が決まりに合わない行は飛ばす。
+        """
         table = cls(path)
         if not os.path.exists(path):  # 初めて遊ぶときはファイルがない
             return table
@@ -73,9 +86,11 @@ class HighscoreTable:
                         skipped, path)
         return table
 
-    # 上位 10 件に入るなら追加して順位（0 から数える）を返す。入らなければ None
-    # 同点なら先に登録した人が上
     def add(self, name: str, score: int) -> int | None:
+        """上位 10 件に入るなら追加して順位（0 から数える）を返す。
+
+        入らなければ None。同点なら先に登録した人が上。
+        """
         rank = sum(1 for entry in self.entries if entry.score >= score)
         if rank >= MAX_ENTRIES:
             return None
@@ -83,9 +98,13 @@ class HighscoreTable:
         del self.entries[MAX_ENTRIES:]
         return rank
 
-    # 保存できたら True。できなくても（場所がない・書き込めないなど）落とさない。
-    # 一時ファイルに書いてから置き換えるので、途中で失敗しても前のファイルは残る
     def save(self) -> bool:
+        """一覧をファイルに保存する。保存できたら True。
+
+        できなくても（場所がない・書き込めないなど）警告を出すだけで落とさない。
+        一時ファイルに書いてから置き換えるので、途中で失敗しても前のファイルは
+        残る。
+        """
         data = {"highscores": [{"name": e.name, "score": e.score}
                                for e in self.entries]}
         folder = os.path.dirname(os.path.abspath(self.path))

@@ -1,3 +1,5 @@
+"""プレイヤー（キー入力で動くキャラクター）。"""
+
 from src.mazegen import Direction, Maze
 from src.mover import Mover
 
@@ -5,22 +7,35 @@ PLAYER_SPEED = 6.0  # 1 秒に進むマス数
 
 
 class Player(Mover):
+    """キー入力の向きに進むキャラクター。
+
+    押されたキーは wanted に覚えておき（先行入力）、次にセルの中心に来たとき
+    その方向に曲がれるなら曲がる。
+    """
+
     def __init__(self, maze: Maze, cell: tuple[int, int],
                  speed: float = PLAYER_SPEED) -> None:
+        """迷路 maze のセル cell に、1 秒に speed マス進むプレイヤーを置く。"""
         super().__init__(maze, cell, speed)
         self.wanted: Direction | None = None  # buffered key input
 
     def place(self, cell: tuple[int, int]) -> None:
+        """cell の中心に止まった状態で置き、先行入力も消す。"""
         super().place(cell)
         self.wanted = None
 
     def steer(self, direction: Direction) -> None:
+        """direction のキーが押されたときに呼ぶ。
+
+        今と反対の向きならその場で折り返す。それ以外は次のセルの中心で曲がる。
+        """
         self.wanted = direction
         if (self.direction is not None
                 and direction == self.direction.opposite):
             self.reverse()
 
     def _choose_direction(self) -> bool:
+        """先行入力の方向、だめなら今の方向に進む。どちらも壁なら止まる。"""
         if (self.wanted is not None
                 and self.maze.can_move(self.x, self.y, self.wanted)):
             self.direction = self.wanted

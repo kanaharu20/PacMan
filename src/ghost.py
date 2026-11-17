@@ -1,3 +1,5 @@
+"""ゴースト（プレイヤーを追い、いじけ中は逃げるキャラクター）。"""
+
 import random
 
 from src.mazegen import Direction, Maze
@@ -8,8 +10,15 @@ FRIGHT_SPEED_RATE = 0.5  # いじけ中は通常の半分の速さで逃げる
 
 
 class Ghost(Mover):
+    """自分の隅から出発し、target（プレイヤーのいるセル）を追うゴースト。
+
+    状態は 3 つ: 通常（追う）、いじけ（fright > 0 の間、遅くなって逃げる）、
+    食べられた（respawn > 0 の間、迷路から消えて隅での復活を待つ）。
+    """
+
     def __init__(self, maze: Maze, cell: tuple[int, int], speed: float,
                  rng: random.Random) -> None:
+        """隅のセル cell に置く。分かれ道で同点のときは rng で方向を選ぶ。"""
         # Mover.__init__ の中で place が呼ばれるので、place が使う値を先に用意する
         self.normal_speed = speed
         self.fright = 0.0  # いじけの残り時間（秒）。0 より大きい間は逃げる
@@ -19,24 +28,30 @@ class Ghost(Mover):
         self.target: tuple[int, int] = cell  # 毎フレーム外から設定する
         self.rng = rng
 
-    # 初期位置に置くときは、いじけも食べられた状態も解除して通常状態に戻す
     def place(self, cell: tuple[int, int]) -> None:
+        """cell に置き、いじけも食べられた状態も解除して通常状態に戻す。"""
         super().place(cell)
         self.respawn = 0.0
         self._calm_down()
 
     @property
     def frightened(self) -> bool:
+        """いじけ中（プレイヤーから逃げていて、食べられる）なら True。"""
         return self.fright > 0.0
 
-    # 食べられて迷路から消えている間は True。動かず、当たり判定もない
     @property
     def eaten(self) -> bool:
+        """食べられて迷路から消えている間は True。動かず、当たり判定もない。"""
         return self.respawn > 0.0
 
-    # スーパーパックガムが食べられたとき。向きを反転して、遅くなって逃げ始める
-    # 食べられて消えているゴーストはいじけない（復活したら通常状態）
     def frighten(self, duration: float) -> None:
+        """スーパーパックガムが食べられたときに呼び、duration 秒いじけさせる。
+
+        向きを反転して、遅くなって逃げ始める。いじけ中にもう一度呼ばれたら
+        反転せず、残り時間を duration に戻す。食べられて消えているゴーストは
+        いじけない
+        （復活したら通常状態）。
+        """
         if self.eaten:
             return
         if not self.frightened:
@@ -44,14 +59,17 @@ class Ghost(Mover):
         self.fright = duration
         self.speed = self.normal_speed * FRIGHT_SPEED_RATE
 
-    # プレイヤーに食べられたとき。delay 秒後に自分の隅で復活する
     def get_eaten(self, delay: float) -> None:
+        """プレイヤーに食べられたときに呼ぶ。delay 秒後に自分の隅で復活する。"""
         self._calm_down()
         self.respawn = delay
 
-    # frozen（チートのゴースト停止）のときは動かないが、タイマーは進める。
-    # 止まっている間も、逃げる状態は終わり、食べられたゴーストは隅で復活する
     def update(self, dt: float, frozen: bool = False) -> None:
+        """dt 秒ぶん、タイマーを進めて動く。
+
+        frozen（チートのゴースト停止）のときは動かないが、タイマーは進める。
+        止まっている間も、逃げる状態は終わり、食べられたゴーストは隅で復活する。
+        """
         if self.eaten:
             self.respawn -= dt
             if self.respawn <= 0.0:
@@ -65,12 +83,16 @@ class Ghost(Mover):
             super().update(dt)
 
     def _calm_down(self) -> None:
+        """いじけを終わらせ、通常の速さに戻す。"""
         self.fright = 0.0
         self.speed = self.normal_speed
 
-    # 逆走はせず、通常時は target までの歩数が一番少ない方向へ、
-    # いじけ中は一番多い方向へ（target から逃げる）。同点なら乱数で選ぶ
     def _choose_direction(self) -> bool:
+        """分かれ道で、target までの歩数を見て進む方向を決める。
+
+        逆走はせず（行き止まりだけは引き返す）、通常時は歩数が一番少ない方向へ、
+        いじけ中は一番多い方向へ（target から逃げる）。同点なら乱数で選ぶ。
+        """
         options = [d for d in Direction
                    if self.maze.can_move(self.x, self.y, d)
                    and (self.direction is None

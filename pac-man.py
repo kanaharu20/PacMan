@@ -1,3 +1,10 @@
+"""Pac-Man の起動スクリプト。
+
+使い方: python3 pac-man.py <config.json>
+引数の確認・設定の読み込み・ゲームの起動を行い、どんなエラーでも
+トレースバックを出さずにメッセージだけ出して終了する。
+"""
+
 import logging
 import os
 import sys
@@ -14,6 +21,11 @@ USAGE = "usage: python3 pac-man.py <config.json>"
 
 
 def main() -> None:
+    """引数の設定ファイルを読んでゲームを起動する。
+
+    引数が 1 つでない・設定が読めない・迷路が作れない・想定外の例外が
+    起きたときは、理由を 1 行出して終了する。
+    """
     # 設定の補正などのメッセージを「WARNING: ...」の形でターミナルに出す
     logging.basicConfig(format="%(levelname)s: %(message)s")
     if len(sys.argv) != 2:

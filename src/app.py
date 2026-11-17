@@ -1,3 +1,5 @@
+"""ウィンドウとメインループ（固定時間ステップでゲームを進める）。"""
+
 import time
 
 import pygame
@@ -11,9 +13,11 @@ TICK = 1 / 60  # ゲームの更新間隔（秒）。描画の速さに関係な
 MAX_LAG = 0.25  # 止まっていた後に一気に進まないよう、1 回に進める時間の上限
 
 
-# ウィンドウとメインループ。今の画面にキー入力・時間・描画を任せるだけ
 class App:
+    """ウィンドウとメインループ。今の画面にキー入力・時間・描画を任せるだけ。"""
+
     def __init__(self, config: Config) -> None:
+        """pygame を初期化し、ウィンドウを開いてメインメニューを用意する。"""
         pygame.init()  # mlx_init
         # どの画面でも同じ大きさのウィンドウを使う
         self.window = pygame.display.set_mode(WINDOW_SIZE)  # mlx_new_window
@@ -24,12 +28,18 @@ class App:
         self.screen: Screen | None = MainMenuScreen(ctx)
 
     def run(self) -> None:
+        """画面がなくなる（終了する）までループし、最後に必ず pygame を閉じる。"""
         try:
             self._loop()
         finally:
             pygame.quit()  # mlx_release
 
     def _loop(self) -> None:
+        """入力 → TICK 秒ずつ更新 → 描画、をくり返す。
+
+        経過時間を lag にためて TICK ごとに update を呼ぶので、描画の速さが
+        変わってもゲームの速さは変わらない。
+        """
         # MLX にタイマーはないので、時間は Python 標準の time で測る
         last = time.perf_counter()
         lag = 0.0
@@ -48,6 +58,7 @@ class App:
             time.sleep(max(0.0, TICK - (time.perf_counter() - now)))
 
     def _handle_events(self) -> None:
+        """たまったイベントを処理する。キーは今の画面に渡し、閉じたら終了する。"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:  # mlx_hook (ウィンドウを閉じる)
                 self.screen = None
