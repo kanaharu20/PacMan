@@ -1,11 +1,13 @@
 import os
 from collections.abc import Iterator
+from pathlib import Path
 
 import pygame
 import pytest
 
 from src.app import TICK, App
 from src.config import Config
+from src.highscore import HighscoreTable
 from src.render import WINDOW_SIZE, TextWriter
 from src.screens import (END_DELAY, Context, HighscoresScreen,
                          InstructionsScreen, MainMenuScreen, PauseScreen,
@@ -27,8 +29,9 @@ def headless() -> Iterator[None]:
 
 
 @pytest.fixture
-def ctx() -> Context:
-    return Context(Config(), TextWriter())
+def ctx(tmp_path: Path) -> Context:
+    table = HighscoreTable(str(tmp_path / "highscores.json"))
+    return Context(Config(), TextWriter(), table)
 
 
 def press(screen: Screen, *keys: int) -> Screen | None:
@@ -133,7 +136,7 @@ def test_victory_after_the_last_level(ctx: Context) -> None:
         play.session.next_level()
     result = run_until_result(play)
     assert isinstance(result, ResultScreen) and result.won
-    assert isinstance(press(result, ENTER), MainMenuScreen)
+    assert isinstance(press(result, ESC), MainMenuScreen)  # 名前を入れずに戻る
 
 
 def test_result_waits_before_switching(ctx: Context) -> None:

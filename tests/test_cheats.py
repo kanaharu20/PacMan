@@ -1,5 +1,6 @@
 import os
 from collections.abc import Iterator
+from pathlib import Path
 
 import pygame
 import pytest
@@ -10,6 +11,7 @@ from src.config import (LIVES_MAX, MAZE_HEIGHT_MIN, MAZE_WIDTH_MIN, Config,
                         LevelConfig)
 from src.game import FRIGHT_TIME, GHOST_RESPAWN_DELAY, Game
 from src.ghost import Ghost
+from src.highscore import HighscoreTable
 from src.player import PLAYER_SPEED
 from src.render import (CHEAT_HUD_X, CHEAT_ITEMS_X, CHEAT_LABELS, FONT_SIZE,
                         HUD_ITEMS_X, WINDOW_SIZE, TextWriter, play_area_size)
@@ -185,8 +187,9 @@ def test_new_game_starts_without_cheats() -> None:
 # ---- ゲーム画面のキー ----
 
 @pytest.fixture
-def play() -> PlayScreen:
-    return PlayScreen(Context(Config(), TextWriter()))
+def play(tmp_path: Path) -> PlayScreen:
+    table = HighscoreTable(str(tmp_path / "highscores.json"))
+    return PlayScreen(Context(Config(), TextWriter(), table))
 
 
 def press(screen: PlayScreen, *keys: int) -> None:
@@ -252,8 +255,9 @@ def test_cheat_hud_fits_and_does_not_overlap() -> None:
     assert right <= WINDOW_SIZE[0]
 
 
-def test_hud_draws_with_cheats_on_smallest_maze() -> None:
+def test_hud_draws_with_cheats_on_smallest_maze(tmp_path: Path) -> None:
     config = Config(levels=[LevelConfig(MAZE_WIDTH_MIN, MAZE_HEIGHT_MIN)])
-    play = PlayScreen(Context(config, TextWriter()))
+    table = HighscoreTable(str(tmp_path / "highscores.json"))
+    play = PlayScreen(Context(config, TextWriter(), table))
     press(play, pygame.K_c, pygame.K_1)
     play.draw(pygame.Surface(WINDOW_SIZE))
