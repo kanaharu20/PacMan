@@ -9,7 +9,7 @@ PYTHON  := $(UV) run python
 MYPY_FLAGS := --warn-return-any --warn-unused-ignores --ignore-missing-imports \
               --disallow-untyped-defs --check-untyped-defs
 
-.PHONY: all install run debug clean lint lint-strict test
+.PHONY: all install run debug clean lint lint-strict test build
 
 all: install
 
@@ -33,7 +33,7 @@ debug:
 clean:
 	find . -type d -name "__pycache__" -not -path "./.venv/*" -prune -exec rm -rf {} +
 	find . -type f -name "*.pyc" -not -path "./.venv/*" -delete
-	rm -rf .mypy_cache .pytest_cache
+	rm -rf .mypy_cache .pytest_cache build dist
 
 # 課題で指定されたフラグで flake8 と mypy を実行する
 lint:
@@ -48,3 +48,10 @@ lint-strict:
 # テストを実行する（課題の必須ルールではない）
 test:
 	$(UV) run pytest
+
+# 配布用パッケージ（実行ファイル + config.json + 説明）を dist/ に作る（課題 VII 章）
+build:
+	$(UV) run --with pyinstaller pyinstaller pac-man.spec
+	cp $(CONFIG) dist/
+	cp PACKAGE_README.txt dist/README.txt
+	cd dist && zip pac-man.zip pac-man $(CONFIG) README.txt
