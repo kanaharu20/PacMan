@@ -471,10 +471,3 @@ Download `pac-man.zip` from that page, unzip it and run `./pac-man config.json`.
   - *Reading the subject and planning:* summarizing the requirements and
     drafting `project_management/project_overview.md` (roles, schedule, risk
     analysis).
-  - *Code:* most of kyonaha's commits were written with Claude: the Makefile,
-    pacgums, time limit and HUD, level progression, highscores and name
-    entry, and the packaging (`pac-man.spec`, `make build`). These commits
-    carry a `Co-Authored-By: Claude` line in the git history.
-  - *Tests:* writing pytest tests in `tests/`.
-  - *Project management:* drafting `progress.md`, `acceptance_tests.md` and
-    `issues_log.md` from the git history and the team's answers.

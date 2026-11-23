@@ -119,7 +119,7 @@ class HighscoreTable:
                 with contextlib.suppress(OSError):  # 一時ファイルの後片付け
                     os.unlink(tmp)
                 raise
-        except OSError as e:
+        except (OSError, ValueError) as e:  # ValueError: 名前に NUL 文字がある
             log.warning("highscores: cannot save to '%s' (%s)", self.path, e)
             return False
         return True

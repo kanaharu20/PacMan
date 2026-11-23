@@ -167,6 +167,17 @@ def test_read_only_folder_does_not_crash(
         folder.chmod(0o700)
 
 
+def test_nul_in_the_filename_does_not_crash(
+        tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    path = str(tmp_path / "a\x00b.json")  # 設定に "a\u0000b.json" と書いた場合
+    table = HighscoreTable.load(path)
+    assert table.entries == []
+    table.add("ABC", 10)
+    assert not table.save()
+    assert "cannot save" in caplog.text
+    assert not list(tmp_path.iterdir())  # 一時ファイルが残らない
+
+
 def test_failed_save_keeps_the_old_file(tmp_path: Path) -> None:
     table = table_at(tmp_path)
     table.add("OLD", 10)
