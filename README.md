@@ -444,8 +444,9 @@ PyInstaller does not cross-compile: the package only works on the operating
 system and CPU it was built on, so `make build` must be run on each target
 platform.
 
-<!-- TODO: add the link to the (unlisted) itch.io page once the build is
-published. -->
+The Linux build is published on itch.io as an unlisted draft (free, not
+listed on the site): <https://hkanamit.itch.io/simple-pacman?secret=Zl2HgCp7ys7wQiuuS1DRs3Z7gI>.
+Download `pac-man.zip` from that page, unzip it and run `./pac-man config.json`.
 
 ## Resources
 
