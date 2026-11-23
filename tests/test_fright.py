@@ -179,3 +179,47 @@ def test_eating_again_restarts_the_timer() -> None:
         ghost.update(TICK)
     ghost.frighten(FRIGHT_TIME)
     assert ghost.fright == FRIGHT_TIME
+
+
+def test_ghost_respawns_frightened_while_fright_lasts() -> None:
+    game = make_game()
+    eat_super_pacgum(game)
+    # 隅に居続けると、復活したゴーストをすぐまた食べてしまうので中央に戻す
+    game.player.place(game.maze.center_cell())
+    ghost = game.ghosts[0]
+    ghost.get_eaten(GHOST_RESPAWN_DELAY)
+    for _ in range(int(GHOST_RESPAWN_DELAY / TICK) + 1):
+        game.update(TICK)
+    assert not ghost.eaten
+    assert ghost.frightened
+    assert ghost.speed == ghost.normal_speed * FRIGHT_SPEED_RATE
+    # 残りの時間だけいじける（他のゴーストと同時に終わる）
+    assert abs(ghost.fright - game.fright_left) < 1e-9
+    assert abs(ghost.fright - game.ghosts[1].fright) < 1e-9
+
+
+def test_ghost_respawns_normal_after_fright_ends() -> None:
+    game = make_game()
+    eat_super_pacgum(game)
+    game.player.place(game.maze.center_cell())
+    # いじけが終わる 1 秒前に食べる → 復活するのはいじけが終わった後
+    for _ in range(int((FRIGHT_TIME - 1.0) / TICK)):
+        game.update(TICK)
+    ghost = game.ghosts[0]
+    assert ghost.frightened
+    ghost.get_eaten(GHOST_RESPAWN_DELAY)
+    for _ in range(int(GHOST_RESPAWN_DELAY / TICK) + 1):
+        game.update(TICK)
+    assert not ghost.eaten
+    assert not ghost.frightened
+    assert ghost.speed == ghost.normal_speed
+
+
+def test_lost_life_ends_fright() -> None:
+    game = make_game()
+    eat_super_pacgum(game)
+    game._lose_life()
+    for _ in range(int(game.freeze / TICK) + 2):
+        game.update(TICK)
+    assert game.fright_left == 0.0
+    assert not any(ghost.frightened for ghost in game.ghosts)

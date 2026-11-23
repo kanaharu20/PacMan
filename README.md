@@ -107,6 +107,7 @@ reset when a new game starts.
   slow down to half speed and run away. They blink white during the last
   2 seconds.
 - An eaten ghost disappears and comes back in its own corner after 3 seconds.
+  If the fright is still on, it comes back frightened for the time left.
 - Touching a normal ghost costs a life. Everyone freezes for 2 seconds, then
   the player goes back to the center and the ghosts to their corners. The
   pacgums already eaten stay eaten.
@@ -269,7 +270,7 @@ grid = generator.maze          # grid[y][x], an int per cell
   the drawing can still be smooth. The player buffers the last key pressed
   and turns as soon as that direction is open; reversing is instant.
 - **Speeds (cells per second):** player 6.0 (9.0 with the fast cheat), ghosts
-  5.4, 5.1, 4.8 and 4.5, halved while frightened.
+  3.9, 3.6, 3.3 and 3.0, halved while frightened.
 - **Ghost AI** ([src/ghost.py](src/ghost.py)): at each cell center a ghost
   computes the shortest walking distance to the player's cell (BFS) and takes
   the neighbor with the smallest distance, or the largest one when

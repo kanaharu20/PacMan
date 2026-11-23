@@ -9,7 +9,7 @@ from src.mazegen import Direction, Maze
 from src.player import PLAYER_SPEED, Player
 
 LIVES = 3
-GHOST_SPEEDS = (5.4, 5.1, 4.8, 4.5)  # プレイヤー (6.0) より少しずつ遅く
+GHOST_SPEEDS = (3.9, 3.6, 3.3, 3.0)  # プレイヤー (6.0) よりはっきり遅く
 RESPAWN_DELAY = 2.0  # 当たってから全員が初期位置に戻って再開するまで（秒）
 LEVEL_TIME = 90.0  # レベルの制限時間（秒）。0 になったら即ゲームオーバー
 POINTS_PER_PACGUM = 10
@@ -57,6 +57,8 @@ class Game:
         self.score = score
         self.time_left = rules.level_time
         self.freeze = 0.0  # 残りの停止時間。0 より大きい間は誰も動かない
+        # いじけの残り時間（秒）。この間に復活したゴーストも残りの時間いじける
+        self.fright_left = 0.0
         self.game_over = False
         self.cleared = False
         self.pacgums, self.super_pacgums = self._place_pacgums()
@@ -105,10 +107,15 @@ class Game:
         if self.time_left == 0.0:
             self.game_over = True
             return
+        self.fright_left = max(0.0, self.fright_left - dt)
         px, py = self.player.position
         for ghost in self.ghosts:
             ghost.target = round(px), round(py)
+            was_eaten = ghost.eaten
             ghost.update(dt, frozen=self.cheats.ghosts_frozen)
+            # いじけ中に復活したら、通常ではなく残りの時間いじけた状態で出る
+            if was_eaten and not ghost.eaten and self.fright_left > 0.0:
+                ghost.frighten(self.fright_left)
         # 全員が動き終わってから判定する
         self._check_ghost_collisions()
 
@@ -126,6 +133,7 @@ class Game:
         elif cell in self.super_pacgums:
             self.super_pacgums.remove(cell)
             self.score += self.rules.points_per_super_pacgum
+            self.fright_left = FRIGHT_TIME
             for ghost in self.ghosts:
                 ghost.frighten(FRIGHT_TIME)
         if not self.pacgums and not self.super_pacgums:
@@ -162,5 +170,6 @@ class Game:
     def _reset_positions(self) -> None:
         """ミスの後、プレイヤーを中央、ゴーストを自分の隅に戻す（ガムはそのまま）。"""
         self.player.place(self.maze.center_cell())
+        self.fright_left = 0.0  # ミスの後は全員通常状態から再開する
         for ghost in self.ghosts:
             ghost.place(ghost.home)
