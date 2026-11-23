@@ -203,7 +203,8 @@ With this example, 7 more 21x21 levels would be added to reach 10.
   with the wrong structure, prints a warning and starts with an empty list.
   Entries with an invalid name or score are skipped with a warning; the valid
   ones are kept.
-- **Saving:** after every game (win or lose) the player can type a name. When
+- **Saving:** after every game (win or lose) the player can type a name
+  (ENTER with an empty name saves the score as `PLAYER`). When
   the score makes the top 10, the file is saved immediately and the
   highscores screen shows the new entry in yellow. The file is written to a
   temporary file first and then renamed over the old one, so a failure in the
@@ -213,9 +214,10 @@ With this example, 7 more 21x21 levels would be added to reach 10.
 - **Viewing:** `HIGHSCORES` in the main menu.
 
 **Why this way:** a JSON file is human-readable, so reviewers can open it,
-break it on purpose, and see that the game survives. The same validation is
-used when typing a name and when loading the file, so a hand-edited file can
-never put an invalid entry on screen. Saving right after the name is entered
+break it on purpose, and see that the game survives. The name entry only
+accepts the characters and length that the loader accepts, and the loader
+validates every entry, so a hand-edited file can never put an invalid entry
+on screen. Saving right after the name is entered
 (instead of only when the program exits) means a score is not lost if the
 window is closed. The atomic replace protects the file from a crash or a full
 disk during writing.

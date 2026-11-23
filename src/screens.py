@@ -7,7 +7,7 @@ import pygame
 
 from src.config import Config
 from src.game import FRIGHT_TIME, GHOST_RESPAWN_DELAY
-from src.highscore import MAX_ENTRIES, NAME_MAX, HighscoreTable, valid_name
+from src.highscore import MAX_ENTRIES, NAME_MAX, HighscoreTable
 from src.mazegen import Direction
 from src.render import Renderer, TextWriter, solid_image
 from src.session import Session
@@ -284,11 +284,15 @@ class PauseScreen(Screen):
                                  "ESC / P: resume")
 
 
+DEFAULT_NAME = "PLAYER"  # 名前を入力せずに登録したときの名前
+
+
 class ResultScreen(Screen):
     """ゲームオーバーと勝利の画面（最終得点と名前の入力）。
 
     勝っても負けても名前を入力してハイスコアに登録できる（課題 V.5 / VI.8）。
     ENTER で登録してハイスコアの画面へ、ESC で登録せずにメニューへ。
+    名前を入力せずに ENTER を押したら DEFAULT_NAME で登録する。
     """
 
     def __init__(self, ctx: Context, won: bool, time_up: bool,
@@ -305,7 +309,7 @@ class ResultScreen(Screen):
         if key == pygame.K_ESCAPE:
             return MainMenuScreen(self.ctx)
         if key in CONFIRM_KEYS:
-            return self._register() if valid_name(self.name) else self
+            return self._register()
         if key == pygame.K_BACKSPACE:
             self.name = self.name[:-1]
         elif key in NAME_KEYS and len(self.name) < NAME_MAX:
@@ -320,7 +324,8 @@ class ResultScreen(Screen):
         結果をハイスコアの画面に表示する（入った行は黄色）。
         """
         table = self.ctx.highscores
-        rank = table.add(self.name.rstrip(), self.score)
+        # 未入力なら既定の名前で登録する（入力できる文字は決まりに合うものだけ）
+        rank = table.add(self.name.rstrip() or DEFAULT_NAME, self.score)
         if rank is None:
             note = f"Your score did not make the top {MAX_ENTRIES}."
         elif not table.save():
@@ -351,7 +356,8 @@ class ResultScreen(Screen):
         self.put_lines(surface, MENU_X, name_y + LINE_HEIGHT, [
             f"Letters, digits and spaces (up to {NAME_MAX})."
             "  BACKSPACE: delete",
-            "ENTER: save   ESC: skip and go back to the main menu",
+            f"ENTER: save (an empty name is saved as {DEFAULT_NAME})",
+            "ESC: skip and go back to the main menu",
         ], HINT_COLOR)
 
 
