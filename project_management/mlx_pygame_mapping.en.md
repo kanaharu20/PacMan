@@ -78,18 +78,3 @@ Colors: MLX uses `0xAARRGGBB` integers; pygame uses `(R, G, B)` tuples.
 | `pygame.transform.*` (scale, rotate, flip) | MLX cannot transform images | Prepare images at the right size and direction from the start |
 | `pygame.time.Clock`, `pygame.time.get_ticks()` | MLX has no timer | Use Python's standard `time` |
 | `pygame.key.get_pressed()` | MLX cannot ask which keys are held down | Track held keys yourself with `KEYDOWN` / `KEYUP` events |
-
-## 4. Open questions (need checking)
-
-| Topic | Problem | Current plan |
-|---|---|---|
-| Text (`pygame.font`) | MLX's `mlx_string_put` only has a fixed built-in font. Using any font such as a `.ttf` file may go beyond MLX | **Decided**: all text goes through `TextWriter.put_string()`. (1) Only pygame's built-in font (`Font(None, ...)`), one size, (2) ASCII only (no Japanese), (3) no background color, (4) no measuring text width with `font.size()` to center it (positions are fixed coordinates), (5) no bold, italic, scaling or rotation. Use an image if a big title is needed |
-| Transparency (alpha) | MLX colors have an alpha byte, but the guide does not say whether `mlx_put_image_to_window` honors it | Check before using it. If possible, use images with a black background |
-| Cutting a sprite sheet (`Surface.subsurface`) | MLX cannot cut out part of an image (copying pixels with `mlx_get_data_addr` does the same thing) | Safest: one image file per frame |
-| `blit` from image to image (not to the screen) | MLX only puts images on the window. Copying pixels between images does the same thing | Not used now. Check if we need it |
-
-## 5. Record of checks
-
-| Date | Who / where | What was asked | Answer |
-|---|---|---|---|
-| | | | |
