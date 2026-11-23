@@ -72,7 +72,8 @@ python3 pac-man.py config.json
 | `make lint` | `flake8` and `mypy` with the flags required by the subject |
 | `make lint-strict` | `flake8` and `mypy --strict` |
 | `make test` | Runs the `pytest` test suite |
-| `make clean` | Removes `__pycache__`, `.mypy_cache` and `.pytest_cache` |
+| `make build` | Builds the distributable package `dist/pac-man.zip` (see [Packaging](#packaging)) |
+| `make clean` | Removes `__pycache__`, `.mypy_cache`, `.pytest_cache`, `build` and `dist` |
 
 ### Controls
 
@@ -376,9 +377,32 @@ the project, or link the documents that record them. -->
 
 ## Packaging
 
-<!-- TODO: the packaging script/spec and the itch.io build are not in the
-repository yet. Describe the script at the root, how to regenerate the
-package, and the link to the (unlisted) itch.io page here. -->
+The game is packaged with [PyInstaller](https://pyinstaller.org/) as a single
+executable. The packaging spec is [pac-man.spec](pac-man.spec), at the root of
+the repository. To regenerate the package:
+
+```sh
+make build                   # creates dist/pac-man.zip
+```
+
+`make build` runs `pyinstaller pac-man.spec` (PyInstaller is fetched by uv for
+this command only), then zips three files:
+
+| File | Content |
+|---|---|
+| `pac-man` | The executable: `pac-man.py`, `src/`, pygame-ce and the maze package |
+| `config.json` | The default configuration, which the player can edit |
+| `README.txt` | In-package instructions (controls, cheats, configuration), copied from [PACKAGE_README.txt](PACKAGE_README.txt) |
+
+To play, unzip the package, open a terminal in the folder and run
+`./pac-man config.json`. The highscores are saved in that folder.
+
+PyInstaller does not cross-compile: the package only works on the operating
+system and CPU it was built on, so `make build` must be run on each target
+platform.
+
+<!-- TODO: add the link to the (unlisted) itch.io page once the build is
+published. -->
 
 ## Resources
 
