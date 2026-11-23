@@ -6,7 +6,7 @@
 
 - **時期**：1 週目〜2 週目（11/04〜11/14）
 - **問題**：課題は「MLX と同等の関数だけ使える」という制約付き。pygame のどの機能が MLX と同等なのか、資料だけでは決めきれないものがあった。特に文字の表示は、MLX の `mlx_string_put` が内蔵の固定フォントしか使えないので、pygame のフォント機能をどこまで使ってよいか判断が分かれた。
-- **対応**：過去のレビューを読んで減点の理由を [reviews/review_lessons.md](reviews/review_lessons.md) にまとめ、使っている pygame の機能と MLX の関数の対応を [mlx_pygame_mapping.ja.md](mlx_pygame_mapping.ja.md) に表にした。文字の表示は、すべて `TextWriter.put_string()` を通すことにした。次の 5 つを決めた。
+- **対応**：過去のレビューを読んで減点の理由を調べ、使っている pygame の機能と MLX の関数の対応を [mlx_pygame_mapping.ja.md](mlx_pygame_mapping.ja.md) に表にした。文字の表示は、すべて `TextWriter.put_string()` を通すことにした。次の 5 つを決めた。
   1. 内蔵フォント 1 種類・1 サイズだけを使う
   2. ASCII 文字だけを出す
   3. 文字に背景色を付けない

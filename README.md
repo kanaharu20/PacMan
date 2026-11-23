@@ -71,7 +71,6 @@ python3 pac-man.py config.json
 | `make debug` | Runs the game under `pdb` |
 | `make lint` | `flake8` and `mypy` with the flags required by the subject |
 | `make lint-strict` | `flake8` and `mypy --strict` |
-| `make test` | Runs the `pytest` test suite |
 | `make build` | Builds the distributable package `dist/pac-man.zip` (see [Packaging](#packaging)) |
 | `make clean` | Removes `__pycache__`, `.mypy_cache`, `.pytest_cache`, `build` and `dist` |
 
@@ -359,8 +358,6 @@ All project management documents are in
   planned architecture, schedule and risk analysis.
 - [mlx_pygame_mapping.en.md](project_management/mlx_pygame_mapping.en.md):
   every pygame feature we use and its MLX equivalent, with the open questions.
-- [reviews/review_lessons.md](project_management/reviews/review_lessons.md):
-  lessons from past peer reviews of this project, turned into a checklist.
 - [progress.md](project_management/progress.md): planned schedule compared
   week by week with what was actually done, from the git history.
 - [acceptance_tests.md](project_management/acceptance_tests.md): acceptance
@@ -399,7 +396,7 @@ week 1 was skipped, and `make build` was only written at the end of week 3.
 Details are in [progress.md](project_management/progress.md).
 
 **Acceptance tests.** `make lint` (flake8 and mypy) reports no errors and the
-185 pytest tests pass. The game was also started with missing, broken and
+186 pytest tests pass. The game was also started with missing, broken and
 invalid configuration files: it never shows a traceback. The checks done by
 playing the game are listed in
 [acceptance_tests.md](project_management/acceptance_tests.md).

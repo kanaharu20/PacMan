@@ -1,6 +1,6 @@
 # 受け入れテスト
 
-[project_overview.md](project_overview.md) 1.3 章の必須要件と、[reviews/review_lessons.md](reviews/review_lessons.md) で評価中によく試されると分かった操作を、1 項目ずつ確かめる表。
+[project_overview.md](project_overview.md) 1.3 章の必須要件と、過去のレビューを読んで評価中によく試されると分かった操作を、1 項目ずつ確かめる表。
 
 - **自動**：コマンドや pytest で確かめた項目。結果は 2026-11-23 に `main`（39d03d6）で確かめたもの。
 - **手動**：ゲームを遊んで確かめる項目。結果の欄は確かめた人が埋める（`OK` / `NG：何が起きたか`、日付、名前）。
@@ -11,7 +11,7 @@
 |---|---|---|---|---|
 | Q1 | flake8 の違反がない | `make lint` | 自動 | OK（2026-11-23） |
 | Q2 | mypy（課題指定のフラグ）のエラーがない | `make lint` | 自動 | OK：25 ファイルでエラーなし（2026-11-23） |
-| Q3 | テストが全部通る | `make test` | 自動 | OK：185 件成功（2026-11-23） |
+| Q3 | テストが全部通る | `uv run pytest` | 自動 | OK：186 件成功（2026-11-23） |
 | Q4 | 新しい環境で `make install` → `make run` で起動する | リポジトリを別のフォルダに clone して実行 | 手動 | |
 | Q5 | `make debug` と `make clean` が動く | 実行して確かめる | 手動 | |
 
