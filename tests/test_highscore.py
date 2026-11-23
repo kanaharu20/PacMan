@@ -11,8 +11,8 @@ from src.config import Config, parse_config
 from src.highscore import (MAX_ENTRIES, NAME_MAX, Entry, HighscoreTable,
                            valid_name, valid_score)
 from src.render import WINDOW_SIZE, TextWriter
-from src.screens import (Context, HighscoresScreen, MainMenuScreen,
-                         ResultScreen, Screen)
+from src.screens import (DEFAULT_NAME, Context, HighscoresScreen,
+                         MainMenuScreen, ResultScreen, Screen)
 
 
 def table_at(tmp_path: Path) -> HighscoreTable:
@@ -243,10 +243,14 @@ def test_enter_saves_and_shows_the_list(ctx: Context) -> None:
     assert isinstance(type_keys(shown, pygame.K_RETURN), MainMenuScreen)
 
 
-def test_empty_name_cannot_be_saved(ctx: Context) -> None:
-    screen = result_screen(ctx)
-    assert type_keys(screen, pygame.K_RETURN) is screen
-    assert ctx.highscores.entries == []
+def test_empty_name_is_saved_with_the_default_name(ctx: Context) -> None:
+    screen = result_screen(ctx, score=500)
+    shown = type_keys(screen, pygame.K_RETURN)
+    assert isinstance(shown, HighscoresScreen)
+    assert valid_name(DEFAULT_NAME)
+    assert ctx.highscores.entries == [Entry(DEFAULT_NAME, 500)]
+    saved = HighscoreTable.load(ctx.highscores.path)
+    assert saved.entries == [Entry(DEFAULT_NAME, 500)]
 
 
 def test_esc_skips_without_saving(ctx: Context) -> None:
