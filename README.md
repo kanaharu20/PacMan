@@ -361,21 +361,62 @@ All project management documents are in
   every pygame feature we use and its MLX equivalent, with the open questions.
 - [reviews/review_lessons.md](project_management/reviews/review_lessons.md):
   lessons from past peer reviews of this project, turned into a checklist.
+- [progress.md](project_management/progress.md): planned schedule compared
+  week by week with what was actually done, from the git history.
+- [acceptance_tests.md](project_management/acceptance_tests.md): acceptance
+  test plan for every mandatory requirement, with the results.
+- [issues_log.md](project_management/issues_log.md): problems met during the
+  project and how we solved them.
+
+The documents in `project_management/` are written in Japanese, except
+`mlx_pygame_mapping.en.md`, which also exists in English.
 
 How we worked: `project_overview.md` planned a split between game logic
 (maze adapter, movement, ghosts, levels, cheats) and the outer layer
 (configuration, highscores, rendering, screens, packaging), with the
-interface between them agreed first. Every change was developed on a feature
-branch and merged into `main` through a GitHub pull request (PRs #1 to #9):
+interface between them agreed first. Features were developed on feature
+branches and merged into `main` through GitHub pull requests (PRs #1 to #11).
+The README, the docstrings, the architecture diagram and the ghost speed
+tuning were committed directly to `main`.
 
 | Member | Pull requests |
 |---|---|
 | hkanamit | Ghost chase, `Mover` and collisions (#1, #3); frightened and eaten ghosts, maze size in the config (#5); screens and start page (#7); cheat mode (#8) |
-| kyonaha | Makefile and `pac-man.py` entry point (#2); pacgums, time limit and HUD (#4); level progression and level config (#6); highscores and name entry (#9) |
+| kyonaha | Makefile and `pac-man.py` entry point (#2); pacgums, time limit and HUD (#4); level progression and level config (#6); highscores and name entry (#9); packaging with `make build` (#10); default name for an empty highscore entry (#11) |
 
-<!-- TODO: add how reviews and decisions were made, actual progress compared
-with the schedule, the acceptance test results and the problems met during
-the project, or link the documents that record them. -->
+**Reviews and decisions.** Each pull request was reviewed and merged by the
+other member, so that both of us know the whole code base. Rules that the
+subject leaves open were decided together and written down where they are
+used: the pygame features allowed as MLX equivalents in
+`mlx_pygame_mapping.en.md`, and the gameplay rules (time limit, respawn,
+speeds) in this README.
+
+**Progress compared with the schedule.** The plan was four weeks from
+2026-11-03. The game was ahead of schedule: levels and the cheat mode, planned
+for week 3, were done in week 2, and the game was feature complete in week 3.
+The exception was packaging: the PyInstaller and itch.io test planned for
+week 1 was skipped, and `make build` was only written at the end of week 3.
+Details are in [progress.md](project_management/progress.md).
+
+**Acceptance tests.** `make lint` (flake8 and mypy) reports no errors and the
+185 pytest tests pass. The game was also started with missing, broken and
+invalid configuration files: it never shows a traceback. The checks done by
+playing the game are listed in
+[acceptance_tests.md](project_management/acceptance_tests.md).
+
+**Problems met.**
+
+- *Which pygame features count as MLX equivalents.* The subject does not say
+  how far pygame's font functions can go. We decided that all text goes
+  through one function that uses a single built-in font and size, ASCII only,
+  with no background and no centering.
+- *Ghost difficulty.* The ghosts first moved at 5.4 to 4.5 cells per second,
+  close to the player's 6.0, and with BFS chasing they were too strong. We
+  slowed them down to 3.9 to 3.0 cells per second. An eaten ghost that comes
+  back while the fright is still on now comes back frightened for the time
+  left.
+
+Details are in [issues_log.md](project_management/issues_log.md).
 
 ## Packaging
 
@@ -425,6 +466,14 @@ published. -->
 - Claude (Anthropic) was used to draft this README and to write the docstrings
   in `src/` and `pac-man.py` from the existing code comments. Both are to be
   reviewed by the team.
-
-<!-- TODO: list the other tasks AI was used for (e.g. reading the subject,
-planning, code, tests, reviews) and which parts of the project they concern. -->
+- Claude was also used for the following tasks:
+  - *Reading the subject and planning:* summarizing the requirements and
+    drafting `project_management/project_overview.md` (roles, schedule, risk
+    analysis).
+  - *Code:* most of kyonaha's commits were written with Claude: the Makefile,
+    pacgums, time limit and HUD, level progression, highscores and name
+    entry, and the packaging (`pac-man.spec`, `make build`). These commits
+    carry a `Co-Authored-By: Claude` line in the git history.
+  - *Tests:* writing pytest tests in `tests/`.
+  - *Project management:* drafting `progress.md`, `acceptance_tests.md` and
+    `issues_log.md` from the git history and the team's answers.
