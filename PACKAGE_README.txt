@@ -23,6 +23,8 @@ CONFIGURATION (edit config.json; lines starting with # are comments)
     points_per_ghost           Points for an eaten ghost
     highscore_filename         File where the 10 best scores are saved
     level_max_time             Time limit of a level, in seconds (10 to 999)
-    levels                     Maze width (14 to 40) and height (10 to 25)
-                               of each level, with an optional time limit
+    width / height             Maze size used by a level that does not give
+                               its own (width 14 to 40, height 10 to 25)
+    levels                     Maze width and height of each level, with an
+                               optional time limit
     An invalid value is replaced by a default and the game starts anyway.
