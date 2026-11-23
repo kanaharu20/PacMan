@@ -1,6 +1,7 @@
 """Pac-Man の起動スクリプト。
 
 使い方: python3 pac-man.py <config.json>
+（配布パッケージの実行ファイルでは ./pac-man <config.json>）
 引数の確認・設定の読み込み・ゲームの起動を行い、どんなエラーでも
 トレースバックを出さずにメッセージだけ出して終了する。
 """
@@ -18,6 +19,8 @@ from src.config import ConfigError, load_config  # noqa: E402
 from src.mazegen import MazeError  # noqa: E402
 
 USAGE = "usage: python3 pac-man.py <config.json>"
+# PyInstaller で作った実行ファイルの中では sys.frozen が True になる
+FROZEN_USAGE = "usage: ./pac-man <config.json>"
 
 
 def main() -> None:
@@ -29,7 +32,7 @@ def main() -> None:
     # 設定の補正などのメッセージを「WARNING: ...」の形でターミナルに出す
     logging.basicConfig(format="%(levelname)s: %(message)s")
     if len(sys.argv) != 2:
-        sys.exit(USAGE)
+        sys.exit(FROZEN_USAGE if getattr(sys, "frozen", False) else USAGE)
     try:
         config = load_config(sys.argv[1])
     except ConfigError as e:
