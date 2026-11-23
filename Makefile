@@ -45,10 +45,6 @@ lint-strict:
 	$(UV) run flake8 .
 	$(UV) run mypy . --strict
 
-# テストを実行する（課題の必須ルールではない）
-test:
-	$(UV) run pytest
-
 # 配布用パッケージ（実行ファイル + config.json + 説明）を dist/ に作る（課題 VII 章）
 build:
 	$(UV) run --with pyinstaller pyinstaller pac-man.spec
